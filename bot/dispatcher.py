@@ -118,6 +118,7 @@ class Dispatcher:
             await self._remember_user(context)
             await handler(context)
         except Exception:
+            self._seen.pop(key, None)
             logger.exception("Failed to handle %s (%s)", update.update_type, key)
             return "error"
         return "handled"
