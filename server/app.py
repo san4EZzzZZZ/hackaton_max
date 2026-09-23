@@ -98,7 +98,7 @@ def create_app(config: Settings | None = None) -> FastAPI:
     async def webhook(request: Request, background: BackgroundTasks, update: Update) -> JSONResponse:
         expected = request.app.state.settings.webhook_secret
         presented = request.headers.get(WEBHOOK_SECRET_HEADER)
-        if expected and presented != expected:
+if not expected or presented != expected:
             logger.warning("Rejected webhook delivery with bad secret")
             return JSONResponse(status_code=401, content={"status": "unauthorized"})
 
