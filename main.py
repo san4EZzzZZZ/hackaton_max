@@ -70,10 +70,12 @@ async def run_polling(config: Settings) -> int:
                 await _sleep_or_stop(stop, 3.0)
                 continue
 
-            if page.marker is not None:
-                marker = page.marker
             for update in page.updates:
-                await dispatcher.feed(update)
+                if await dispatcher.feed(update) == "error":
+                    break
+            else:
+                if page.marker is not None:
+                    marker = page.marker
             if page.updates:
                 logger.info("Processed %d update(s), marker=%s", len(page.updates), marker)
     finally:
