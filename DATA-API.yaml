@@ -1,0 +1,558 @@
+openapi: 3.1.0
+info:
+  title: MAX Hackathon API
+  description: 'Спецификация DATA-API: цифровой навигатор и конструктор маршрутов выходного дня в мессенджере
+    MAX.'
+  version: 1.0.0
+paths:
+  /api/v1/places:
+    get:
+      tags:
+      - Places
+      summary: Список достопримечательностей
+      operationId: list_places_api_v1_places_get
+      parameters:
+      - name: city
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Фильтр по городу
+          title: City
+        description: Фильтр по городу
+      - name: category
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Фильтр по категории
+          title: Category
+        description: Фильтр по категории
+      - name: is_pushkin_card
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          description: Только по Пушкинской карте
+          title: Is Pushkin Card
+        description: Только по Пушкинской карте
+      - name: max_price
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+            minimum: 0
+          - type: 'null'
+          description: Максимальная стоимость, руб.
+          title: Max Price
+        description: Максимальная стоимость, руб.
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Place'
+                title: Response List Places Api V1 Places Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/places/{place_id}:
+    get:
+      tags:
+      - Places
+      summary: Карточка места
+      operationId: get_place_api_v1_places__place_id__get
+      parameters:
+      - name: place_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Place Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Place'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/categories:
+    get:
+      tags:
+      - Places
+      summary: Доступные категории мест
+      operationId: list_categories_api_v1_categories_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  type: string
+                type: array
+                title: Response List Categories Api V1 Categories Get
+  /api/v1/routes/generate:
+    post:
+      tags:
+      - Routes
+      summary: Собрать маршрут выходного дня
+      operationId: generate_route_api_v1_routes_generate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RouteRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouteResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /webhook:
+    post:
+      summary: Webhook
+      operationId: webhook_webhook_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Update'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /health:
+    get:
+      summary: Health
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Health Health Get
+  /:
+    get:
+      summary: Root
+      operationId: root__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Root  Get
+components:
+  schemas:
+    CallbackPayload:
+      properties:
+        callback_id:
+          type: string
+          title: Callback Id
+          default: ''
+        timestamp:
+          type: integer
+          title: Timestamp
+          default: 0
+        payload:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Payload
+        user:
+          anyOf:
+          - $ref: '#/components/schemas/UserRef'
+          - type: 'null'
+      type: object
+      title: CallbackPayload
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    Location:
+      properties:
+        lat:
+          type: number
+          maximum: 90.0
+          minimum: -90.0
+          title: Lat
+          description: Широта
+        lon:
+          type: number
+          maximum: 180.0
+          minimum: -180.0
+          title: Lon
+          description: Долгота
+      type: object
+      required:
+      - lat
+      - lon
+      title: Location
+    Message:
+      properties:
+        sender:
+          anyOf:
+          - $ref: '#/components/schemas/UserRef'
+          - type: 'null'
+        recipient:
+          $ref: '#/components/schemas/MessageRecipient'
+        timestamp:
+          type: integer
+          title: Timestamp
+          default: 0
+        body:
+          $ref: '#/components/schemas/MessageBody'
+      type: object
+      title: Message
+    MessageBody:
+      properties:
+        mid:
+          type: string
+          title: Mid
+          default: ''
+        seq:
+          type: integer
+          title: Seq
+          default: 0
+        text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Text
+        attachments:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Attachments
+      type: object
+      title: MessageBody
+    MessageRecipient:
+      properties:
+        chat_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Chat Id
+        chat_type:
+          type: string
+          title: Chat Type
+          default: dialog
+        user_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: User Id
+        post_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Post Id
+      type: object
+      title: MessageRecipient
+    Place:
+      properties:
+        id:
+          type: string
+          title: Id
+          description: Уникальный идентификатор места
+        title:
+          type: string
+          title: Title
+          description: Название места или события
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+          description: Краткое описание
+        category:
+          type: string
+          title: Category
+          description: Категория объекта
+        location:
+          $ref: '#/components/schemas/Location'
+        address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Address
+          description: Адрес
+        city:
+          type: string
+          title: City
+          description: Город
+          default: Москва
+        is_pushkin_card:
+          type: boolean
+          title: Is Pushkin Card
+          description: Доступно по Пушкинской карте
+          default: false
+        price:
+          type: number
+          minimum: 0.0
+          title: Price
+          description: Стоимость посещения, руб.
+          default: 0.0
+        working_hours:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Working Hours
+          description: Часы работы
+        rating:
+          type: number
+          maximum: 5.0
+          minimum: 0.0
+          title: Rating
+          description: Рейтинг 0..5
+          default: 5.0
+        visit_duration_minutes:
+          type: integer
+          minimum: 15.0
+          title: Visit Duration Minutes
+          description: Рекомендуемая длительность визита
+          default: 60
+        image_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Image Url
+          description: Ссылка на изображение
+      type: object
+      required:
+      - id
+      - title
+      - category
+      - location
+      title: Place
+    RouteRequest:
+      properties:
+        city:
+          type: string
+          minLength: 2
+          title: City
+          description: Город
+        categories:
+          items:
+            type: string
+          type: array
+          title: Categories
+          description: Фильтр по категориям
+        max_budget:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Max Budget
+          description: Максимальный бюджет, руб.
+        is_pushkin_card_only:
+          type: boolean
+          title: Is Pushkin Card Only
+          description: Только места по Пушкинской карте
+          default: false
+        duration_hours:
+          type: number
+          maximum: 12.0
+          exclusiveMinimum: 0.0
+          title: Duration Hours
+          description: Желаемая длительность, ч.
+          default: 4.0
+      type: object
+      required:
+      - city
+      title: RouteRequest
+    RouteResponse:
+      properties:
+        route_id:
+          type: string
+          title: Route Id
+        title:
+          type: string
+          title: Title
+        city:
+          type: string
+          title: City
+        total_duration_hours:
+          type: number
+          minimum: 0.0
+          title: Total Duration Hours
+          description: Визиты и переходы между точками
+        total_cost:
+          type: number
+          minimum: 0.0
+          title: Total Cost
+          description: Суммарная стоимость посещения, руб.
+        places:
+          items:
+            $ref: '#/components/schemas/Place'
+          type: array
+          title: Places
+          description: Точки в порядке визита
+      type: object
+      required:
+      - route_id
+      - title
+      - city
+      - total_duration_hours
+      - total_cost
+      title: RouteResponse
+    Update:
+      properties:
+        update_type:
+          type: string
+          minLength: 1
+          title: Update Type
+        timestamp:
+          type: integer
+          title: Timestamp
+          default: 0
+        chat_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Chat Id
+        user:
+          anyOf:
+          - $ref: '#/components/schemas/UserRef'
+          - type: 'null'
+        message:
+          anyOf:
+          - $ref: '#/components/schemas/Message'
+          - type: 'null'
+        callback:
+          anyOf:
+          - $ref: '#/components/schemas/CallbackPayload'
+          - type: 'null'
+        payload:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Payload
+        is_channel:
+          type: boolean
+          title: Is Channel
+          default: false
+        user_locale:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: User Locale
+      type: object
+      required:
+      - update_type
+      title: Update
+      description: Envelope for every event MAX delivers to a webhook or returns from `/updates`.
+    UserRef:
+      properties:
+        user_id:
+          type: integer
+          title: User Id
+        name:
+          type: string
+          title: Name
+          default: ''
+        first_name:
+          type: string
+          title: First Name
+          default: ''
+        last_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Last Name
+        username:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Username
+        is_bot:
+          type: boolean
+          title: Is Bot
+          default: false
+        last_activity_time:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Last Activity Time
+      type: object
+      required:
+      - user_id
+      title: UserRef
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+servers:
+- url: http://localhost:8080
+  description: Локальный сервер разработки

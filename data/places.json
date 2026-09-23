@@ -1,0 +1,62 @@
+[
+  {
+    "id": "tretyakov-gallery",
+    "title": "Государственная Третьяковская галерея",
+    "description": "Главное собрание национального искусства России.",
+    "category": "Музей",
+    "location": { "lat": 55.741389, "lon": 37.620278 },
+    "address": "Лаврушинский переулок, 10, Москва",
+    "city": "Москва",
+    "is_pushkin_card": true,
+    "price": 500,
+    "working_hours": "10:00–20:00, выходной — понедельник",
+    "rating": 4.9,
+    "visit_duration_minutes": 120,
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Tretyakov_Gallery_Tretyakovskaya.jpg/800px-Tretyakov_Gallery_Tretyakovskaya.jpg"
+  },
+  {
+    "id": "zaryadye-park",
+    "title": "Парк «Зарядье»",
+    "description": "Ландшафтный парк с парящим мостом и медиацентром.",
+    "category": "Парк",
+    "location": { "lat": 55.751111, "lon": 37.628056 },
+    "address": "улица Варварка, 6с1, Москва",
+    "city": "Москва",
+    "is_pushkin_card": false,
+    "price": 0,
+    "working_hours": "круглосуточно",
+    "rating": 4.8,
+    "visit_duration_minutes": 90,
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Zaryadye_Park_2017.jpg/800px-Zaryadye_Park_2017.jpg"
+  },
+  {
+    "id": "pushkin-museum",
+    "title": "ГМИИ имени А. С. Пушкина",
+    "description": "Музей изобразительных искусств с коллекцией мирового наследия.",
+    "category": "Музей",
+    "location": { "lat": 55.747222, "lon": 37.605278 },
+    "address": "улица Волхонка, 12, Москва",
+    "city": "Москва",
+    "is_pushkin_card": true,
+    "price": 600,
+    "working_hours": "11:00–20:00, выходной — понедельник",
+    "rating": 4.9,
+    "visit_duration_minutes": 120,
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Pushkin_Museum_Moscow.jpg/800px-Pushkin_Museum_Moscow.jpg"
+  },
+  {
+    "id": "bolshoy-theatre",
+    "title": "Большой театр",
+    "description": "Главный оперный и балетный театр страны.",
+    "category": "Театр",
+    "location": { "lat": 55.759806, "lon": 37.618611 },
+    "address": "Театральная площадь, 1, Москва",
+    "city": "Москва",
+    "is_pushkin_card": false,
+    "price": 2000,
+    "working_hours": "касса 11:00–20:00",
+    "rating": 4.9,
+    "visit_duration_minutes": 150,
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Moscow_Bolshoy_Theatre_05-2015.jpg/800px-Moscow_Bolshoy_Theatre_05-2015.jpg"
+  }
+]

@@ -18,6 +18,7 @@ from bot.handlers.start import register
 from bot.keyboards import bot_commands
 from bot.models import Update
 from core.config import Settings, configure_logging, get_settings
+from server.routers import api_router
 from server.database import (
     count_users,
     dispose_db,
@@ -89,10 +90,14 @@ def create_app(config: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="MAX Messenger Bot — MVP",
-        description="Webhook receiver and health API for the MAX Mini App bot.",
+        description=(
+            "Webhook receiver for the MAX Mini App bot plus the places & routes API "
+            "consumed by the Mini App frontend."
+        ),
         version="1.0.0",
         lifespan=lifespan,
     )
+    app.include_router(api_router)
 
     @app.post("/webhook")
     async def webhook(request: Request, update: Update) -> JSONResponse:
