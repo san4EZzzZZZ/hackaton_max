@@ -4,17 +4,6 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-# Categories present in `data/places.json`; the API rejects anything outside this list.
-CATEGORIES: tuple[str, ...] = (
-    "Музей",
-    "Парк",
-    "Галерея",
-    "Театр",
-    "Выставка",
-    "Архитектура",
-    "Памятник",
-)
-
 
 class ApiModel(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore", str_strip_whitespace=True)
@@ -29,10 +18,10 @@ class Place(ApiModel):
     id: str = Field(..., description="Уникальный идентификатор места")
     title: str = Field(..., description="Название места или события")
     description: str | None = Field(None, description="Краткое описание")
-    category: str = Field(..., description="Категория объекта")
+    category: str = Field(..., description="Категория объекта, см. GET /categories")
     location: Location
     address: str | None = Field(None, description="Адрес")
-    city: str = Field("Москва", description="Город")
+    city: str = Field("Ростов-на-Дону", description="Город")
     is_pushkin_card: bool = Field(False, description="Доступно по Пушкинской карте")
     price: float = Field(0.0, ge=0, description="Стоимость посещения, руб.")
     working_hours: str | None = Field(None, description="Часы работы")

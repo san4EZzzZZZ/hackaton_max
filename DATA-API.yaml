@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: MAX Hackathon API
-  description: 'Спецификация DATA-API: цифровой навигатор и конструктор маршрутов выходного дня в мессенджере
-    MAX.'
+  description: 'Спецификация DATA-API: цифровой навигатор и конструктор маршрутов
+    выходного дня в мессенджере MAX.'
   version: 1.0.0
 paths:
   /api/v1/places:
@@ -317,7 +317,7 @@ components:
         category:
           type: string
           title: Category
-          description: Категория объекта
+          description: Категория объекта, см. GET /categories
         location:
           $ref: '#/components/schemas/Location'
         address:
@@ -330,7 +330,7 @@ components:
           type: string
           title: City
           description: Город
-          default: Москва
+          default: Ростов-на-Дону
         is_pushkin_card:
           type: boolean
           title: Is Pushkin Card
@@ -529,7 +529,8 @@ components:
       required:
       - update_type
       title: Update
-      description: Envelope for every event MAX delivers to a webhook or returns from `/updates`.
+      description: Envelope for every event MAX delivers to a webhook or returns from
+        `/updates`.
     UserRef:
       properties:
         user_id:

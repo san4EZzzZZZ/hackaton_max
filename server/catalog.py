@@ -38,3 +38,8 @@ def load_places() -> tuple[Place, ...]:
 
     logger.info("Loaded %d places from %s", len(places), DATA_FILE.name)
     return tuple(places)
+
+
+def known_categories() -> tuple[str, ...]:
+    """Categories the seed data actually contains, in catalog order."""
+    return tuple(dict.fromkeys(place.category for place in load_places()))
