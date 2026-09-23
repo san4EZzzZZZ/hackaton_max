@@ -437,6 +437,12 @@ components:
           type: array
           title: Places
           description: Точки в порядке визита
+        stops:
+          items:
+            $ref: '#/components/schemas/RouteStop'
+          type: array
+          title: Stops
+          description: Те же точки с таймингами переходов; пуст, если маршрут не собран
       type: object
       required:
       - route_id
@@ -445,6 +451,39 @@ components:
       - total_duration_hours
       - total_cost
       title: RouteResponse
+    RouteStop:
+      properties:
+        place:
+          $ref: '#/components/schemas/Place'
+        order:
+          type: integer
+          minimum: 1.0
+          title: Order
+          description: Позиция точки в маршруте
+        arrival_offset_minutes:
+          type: integer
+          minimum: 0.0
+          title: Arrival Offset Minutes
+          description: Момент прибытия от начала, мин.
+        visit_duration_minutes:
+          type: integer
+          minimum: 15.0
+          title: Visit Duration Minutes
+          description: Время на точку, мин.
+        travel_minutes_from_prev:
+          type: integer
+          minimum: 0.0
+          title: Travel Minutes From Prev
+          description: Переход от предыдущей точки, мин.
+          default: 0
+      type: object
+      required:
+      - place
+      - order
+      - arrival_offset_minutes
+      - visit_duration_minutes
+      title: RouteStop
+      description: One point of an assembled route with its place in the timeline.
     Update:
       properties:
         update_type:
