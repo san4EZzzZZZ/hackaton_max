@@ -7,7 +7,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import BackgroundTasks, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -95,15 +95,15 @@ def create_app(config: Settings | None = None) -> FastAPI:
     )
 
     @app.post("/webhook")
-    async def webhook(request: Request, background: BackgroundTasks, update: Update) -> JSONResponse:
+    async def webhook(request: Request, update: Update) -> JSONResponse:
         expected = request.app.state.settings.webhook_secret
         presented = request.headers.get(WEBHOOK_SECRET_HEADER)
-if not expected or presented != expected:
+        if not expected or presented != expected:
             logger.warning("Rejected webhook delivery with bad secret")
             return JSONResponse(status_code=401, content={"status": "unauthorized"})
 
         dispatcher: Dispatcher = request.app.state.dispatcher
-        background.add_task(dispatcher.feed, update)
+        await dispatcher.feed(update)
         return JSONResponse(content={"status": "accepted"})
 
     @app.exception_handler(RequestValidationError)
