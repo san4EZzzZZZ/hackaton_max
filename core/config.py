@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     )
 
     # MAX bot credentials
-    bot_token: str = ""
+    bot_token: str
     bot_api_url: str = "https://platform-api2.max.ru"
     bot_user_id: int = 0
     bot_username: str = ""
