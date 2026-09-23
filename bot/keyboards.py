@@ -50,7 +50,7 @@ def open_app_button(
     """
     cfg = app_settings or default_settings
     if not cfg.mini_app_url:
-return LinkButton(text=text, url=mini_app_link(cfg, payload))
+        return LinkButton(text=text, url=mini_app_link(cfg, payload))
     return OpenAppButton(text=text, web_app=cfg.mini_app_url, payload=sanitize_app_payload(payload))
 
 
