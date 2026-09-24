@@ -8,6 +8,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -18,6 +19,7 @@ from bot.handlers.start import register
 from bot.keyboards import bot_commands
 from bot.models import Update
 from core.config import Settings, configure_logging, get_settings
+from server.routers import api_router
 from server.database import (
     count_users,
     dispose_db,
@@ -89,10 +91,14 @@ def create_app(config: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="MAX Messenger Bot — MVP",
-        description="Webhook receiver and health API for the MAX Mini App bot.",
+        description=(
+            "Webhook receiver for the MAX Mini App bot plus the places & routes API "
+            "consumed by the Mini App frontend."
+        ),
         version="1.0.0",
         lifespan=lifespan,
     )
+    app.include_router(api_router)
 
     @app.post("/webhook")
     async def webhook(request: Request, update: Update) -> JSONResponse:
@@ -110,8 +116,10 @@ def create_app(config: Settings | None = None) -> FastAPI:
     async def malformed_update(request: Request, exc: RequestValidationError) -> JSONResponse:
         """Ack unreadable payloads: a non-200 makes MAX redeliver the same update forever."""
         if request.url.path != "/webhook":
+            # Rejecting unknown request fields only helps if the answer says which one, and the
+            # errors array is the shape /openapi.json declares for 422.
             logger.info("Validation failed for %s: %s", request.url.path, str(exc.errors())[:500])
-            return JSONResponse(status_code=422, content={"detail": "validation failed"})
+            return JSONResponse(status_code=422, content={"detail": jsonable_encoder(exc.errors())})
         logger.warning("Ignoring malformed webhook payload: %s", str(exc.errors())[:300])
         return JSONResponse(status_code=200, content={"status": "ignored"})
 

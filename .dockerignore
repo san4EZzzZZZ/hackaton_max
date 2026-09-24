@@ -8,7 +8,10 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
-data/
+# `data/*` (not `data/`) so places.json can be re-included: the seed file must ship in the
+# image, while the local SQLite db/wal files next to it must not.
+data/*
+!data/places.json
 *.db
 *.db-wal
 *.db-shm

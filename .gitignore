@@ -220,6 +220,7 @@ __marimo__/
 # --- project: MAX bot runtime artifacts -----------------------------------
 data/*
 !data/.gitkeep
+!data/*.json
 certs/*
 !certs/.gitkeep
 !certs/*.pem
