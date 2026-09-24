@@ -1,0 +1,22 @@
+.button {
+  width: 100%;
+  height: 56px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--green-500) 0%, var(--teal-600) 100%);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: var(--shadow-button);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.2s ease;
+}
+
+.button:active {
+  transform: scale(0.975);
+  box-shadow: 0 4px 12px rgba(18, 183, 106, 0.3);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  box-shadow: none;
+  cursor: not-allowed;
+}
