@@ -7,7 +7,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -19,7 +19,9 @@ from bot.handlers.start import register
 from bot.keyboards import bot_commands
 from bot.models import Update
 from core.config import Settings, configure_logging, get_settings
+from server.cors import configure_cors
 from server.routers import api_router
+from server.schemas import DATABASE_UNAVAILABLE_RESPONSE
 from server.database import (
     count_users,
     dispose_db,
@@ -90,14 +92,15 @@ def create_app(config: Settings | None = None) -> FastAPI:
             await dispose_db()
 
     app = FastAPI(
-        title="MAX Messenger Bot — MVP",
+        title="MAX Hackathon API",
         description=(
-            "Webhook receiver for the MAX Mini App bot plus the places & routes API "
-            "consumed by the Mini App frontend."
+            "Спецификация DATA-API: цифровой навигатор и конструктор маршрутов выходного дня "
+            "в мессенджере MAX."
         ),
         version="1.0.0",
         lifespan=lifespan,
     )
+    configure_cors(app)
     app.include_router(api_router)
 
     @app.post("/webhook")
@@ -136,8 +139,11 @@ def create_app(config: Settings | None = None) -> FastAPI:
             headers=getattr(exc, "headers", None),
         )
 
+    # Liveness on purpose: the Docker HEALTHCHECK watches /health, and failing it on a short SQLite
+    # hiccup would have the orchestrator restart a bot that still serves traffic. Readiness is /readyz.
     @app.get("/health")
     async def health(request: Request) -> dict[str, object]:
+        """Статус базы и число пользователей; 200 даже при недоступной базе."""
         database_ok = await ping_db()
         users = 0
         if database_ok:
@@ -150,6 +156,13 @@ def create_app(config: Settings | None = None) -> FastAPI:
             "bot": request.app.state.settings.bot_username,
             "mode": "webhook",
         }
+
+    @app.get("/readyz", responses={503: DATABASE_UNAVAILABLE_RESPONSE})
+    async def readyz() -> dict[str, str]:
+        """Готовность принимать трафик: 503, если база не отвечает."""
+        if not await ping_db():
+            raise HTTPException(status_code=503, detail="База данных не отвечает")
+        return {"status": "ready"}
 
     @app.get("/")
     async def root() -> dict[str, str]:

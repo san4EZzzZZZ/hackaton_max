@@ -16,7 +16,14 @@ bot/keyboards.py      билдеры inline_keyboard (open_app / link / callback
 bot/dispatcher.py     роутинг по update_type и командам + дедупликация событий + upsert пользователя
 bot/handlers/start.py приветствие, фолбэк на любой текст, ответы на callback
 server/database.py    AsyncEngine + aiosqlite, PRAGMA WAL/synchronous/foreign_keys, модель User
+server/schemas.py     публичные контракты: Place / RouteRequest / RouteResponse + описания для OpenAPI
+server/catalog.py     загрузка data/places.json (кэш), нестрогое сравнение города, список категорий
+server/routing.py     сборка маршрута: отбор по рейтингу на минуту затрат + 2-opt порядок переходов
+server/routers/       /api/v1: places, categories, routes/generate
+server/cors.py        CORS для браузерных запросов Mini App (CORS_ALLOW_ORIGINS)
 server/app.py         FastAPI: lifespan, POST /webhook, /health
+scripts/export_openapi.py
+                      генерация DATA-API.yaml из живого приложения (--check для CI)
 main.py               единая точка входа: --mode=webhook|polling|setup-webhook
 ```
 
@@ -85,6 +92,7 @@ MAX не знает про Telegram-подобную `reply_markup`/постоя
 | `SSL_CA_BUNDLE` / `SSL_VERIFY` | доп. доверенный корень MAX (уже лежит в `certs/`) / строгость TLS |
 | `AUTO_SETUP` | регистрировать меню команд и подписку при старте |
 | `POLLING_TIMEOUT` / `POLLING_LIMIT` | параметры long polling (0..90 / 1..1000) |
+| `CORS_ALLOW_ORIGINS` | список origin'ов через запятую, которым разрешено звать `/api/v1` из браузера; пусто — `*` |
 
 Смена SQLite → PostgreSQL не требует кода: только `DATABASE_URL` (движок сам подставит
 `asyncpg`, upsert работает на обеих диалектах).
@@ -118,14 +126,21 @@ fingerprint: D2:6D:2D:02:31:B7:C3:9F:92:CC:73:85:12:BA:54:10:35:19:E4:40:5D:68:B
 | --- | --- | --- |
 | `POST` | `/webhook` | принимает `Update`, отвечает 200 сразу, обрабатывает в фоне |
 | `GET` | `/health` | статус БД и число пользователей |
+| `GET` | `/readyz` | готовность: 503, если база не отвечает |
 | `GET` | `/api/v1/places` | каталог с фильтрами `city`, `category`, `is_pushkin_card`, `max_price` |
 | `GET` | `/api/v1/places/{place_id}` | карточка места, 404 при промахе |
 | `GET` | `/api/v1/categories` | категории, фактически присутствующие в данных |
 | `POST` | `/api/v1/routes/generate` | собранный маршрут с таймингами переходов |
 | `GET` | `/docs` | OpenAPI/Swagger |
 
-Контракт для фронтенда — `DATA-API.yaml` в корне: он генерируется из живого приложения, править руками
-его не нужно.
+Контракт для фронтенда — `DATA-API.yaml` в корне. Он не правится руками: после любого изменения эндпоинтов
+пересоберите его из живого приложения и коммитьте вместе с кодом.
+
+```bash
+pip install -r dev-requirements.txt
+python scripts/export_openapi.py            # перегенерировать
+python scripts/export_openapi.py --check    # проверка, которая будет крутить CI
+```
 
 Семантика ответов, на которую стоит опираться:
 
@@ -138,6 +153,8 @@ fingerprint: D2:6D:2D:02:31:B7:C3:9F:92:CC:73:85:12:BA:54:10:35:19:E4:40:5D:68:B
 - Неизвестное поле в теле запроса — `422` со списком ошибок, а не молчаливое игнорирование: проглоченный
   `budget` неотличим от проигнорированного лимита.
 - `503` означает, что файл каталога недоступен или повреждён.
+- `/health` отвечает `200` и при недоступной базе — на него висит `HEALTHCHECK` контейнера, и валить бота
+  из-за короткого сбоя SQLite не нужно. Проверяют готовность отдельно: `/readyz` отдаёт `503`.
 
 ## Шпаргалка: деплой на сервер одной командой
 

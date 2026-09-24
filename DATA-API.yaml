@@ -202,6 +202,7 @@ paths:
   /health:
     get:
       summary: Health
+      description: Статус базы и число пользователей; 200 даже при недоступной базе.
       operationId: health_health_get
       responses:
         '200':
@@ -212,6 +213,27 @@ paths:
                 additionalProperties: true
                 type: object
                 title: Response Health Health Get
+  /readyz:
+    get:
+      summary: Readyz
+      description: 'Готовность принимать трафик: 503, если база не отвечает.'
+      operationId: readyz_readyz_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Readyz Readyz Get
+        '503':
+          description: База данных не отвечает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
   /:
     get:
       summary: Root
