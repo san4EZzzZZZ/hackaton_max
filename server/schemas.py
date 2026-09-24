@@ -28,6 +28,19 @@ DATABASE_UNAVAILABLE_RESPONSE = {
     "description": "База данных не отвечает",
 }
 
+# Page totals travel as headers, not as a JSON envelope: `/places` answers a bare array today, and
+# wrapping it would break the Mini App that is already wired to that shape.
+PAGINATION_HEADERS = {
+    "X-Total-Count": {
+        "description": "Сколько объектов подошло под фильтры, до применения limit/offset",
+        "schema": {"type": "integer", "minimum": 0},
+    },
+    "X-Offset": {
+        "description": "Смещение, с которого взята текущая страница",
+        "schema": {"type": "integer", "minimum": 0},
+    },
+}
+
 
 class Location(ApiModel):
     lat: float = Field(..., ge=-90, le=90, description="Широта")
@@ -48,6 +61,14 @@ class Place(ApiModel):
     rating: float = Field(5.0, ge=0, le=5, description="Рейтинг 0..5")
     visit_duration_minutes: int = Field(60, ge=15, description="Рекомендуемая длительность визита")
     image_url: str | None = Field(None, description="Ссылка на изображение")
+
+
+class CitySummary(ApiModel):
+    """One city present in the catalog; the seed data holds a single one for now."""
+
+    city: str = Field(..., description="Название города")
+    place_count: int = Field(..., ge=1, description="Число объектов в этом городе")
+    categories: list[str] = Field(..., description="Категории этих объектов")
 
 
 class RouteRequest(ApiModel):

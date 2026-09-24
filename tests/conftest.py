@@ -37,7 +37,7 @@ os.environ.pop("CORS_ALLOW_ORIGINS", None)
 from fastapi.testclient import TestClient  # noqa: E402
 
 from server.app import create_app  # noqa: E402
-from server.catalog import load_places  # noqa: E402
+from server.catalog import invalidate_cache, load_places  # noqa: E402
 from server.database import Base, engine  # noqa: E402
 
 
@@ -62,13 +62,12 @@ def empty_database() -> Iterator[None]:
     yield
 
 
-
 @pytest.fixture(autouse=True)
 def uncached_catalog() -> Iterator[None]:
     """`load_places` is an `lru_cache`, so a test that points it at a broken file must not leak."""
-    load_places.cache_clear()
+    invalidate_cache()
     yield
-    load_places.cache_clear()
+    invalidate_cache()
 
 
 @contextmanager
@@ -86,7 +85,11 @@ def client() -> Iterator[TestClient]:
 
 @pytest.fixture(scope="session")
 def places() -> list[dict]:
-    """The seed catalog, for tests that assert counts instead of echoing the data back."""
-    from server.catalog import load_places as load
+    """The seed catalog as plain dicts, for tests that count instead of hardcoding numbers."""
+    return [place.model_dump() for place in load_places()]
 
-    return [place.model_dump() for place in load()]
+
+@pytest.fixture(scope="session")
+def one_place(places: list[dict]) -> dict:
+    """A real record, for a test that needs a valid object rather than the whole file."""
+    return dict(places[0])

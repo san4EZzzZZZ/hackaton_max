@@ -36,6 +36,11 @@ def haversine_km(origin: Location, target: Location) -> float:
     return 2 * EARTH_RADIUS_KM * math.asin(math.sqrt(chord))
 
 
+def within_radius_km(location: Location, center: Location, radius_km: float) -> bool:
+    """Straight-line filter: how far the object is, not how long the transfer takes."""
+    return haversine_km(center, location) <= radius_km
+
+
 def travel_minutes(origin: Location, target: Location) -> int:
     """Door-to-door transfer time, floored at the fixed walking allowance."""
     driving = haversine_km(origin, target) / TRANSIT_KMH * 60

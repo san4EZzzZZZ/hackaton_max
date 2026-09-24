@@ -10,11 +10,9 @@ paths:
       tags:
       - Places
       summary: Список достопримечательностей
-      description: 'Пустая выборка — это `200 []`, а не ошибка: коллекция по фильтру
-        пуста, сама она существует.
-
-        Исключение — `POST /routes/generate`, где нечего собирать, поэтому отвечает
-        404.'
+      description: Фильтры комбинируются между собой. Порядок ответа — порядок в каталоге,
+        радиус ничего не пересортировывает. Сколько объектов подошло до limit/offset
+        — в заголовке X-Total-Count.
       operationId: list_places_api_v1_places_get
       parameters:
       - name: city
@@ -58,9 +56,90 @@ paths:
           description: Максимальная стоимость, руб.
           title: Max Price
         description: Максимальная стоимость, руб.
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 2
+          - type: 'null'
+          description: Поиск по названию, описанию, адресу и категории
+          title: Q
+        description: Поиск по названию, описанию, адресу и категории
+      - name: min_rating
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+            maximum: 5
+            minimum: 0
+          - type: 'null'
+          description: Минимальный рейтинг
+          title: Min Rating
+        description: Минимальный рейтинг
+      - name: near_lat
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+            maximum: 90
+            minimum: -90
+          - type: 'null'
+          description: Широта центра поиска
+          title: Near Lat
+        description: Широта центра поиска
+      - name: near_lon
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+            maximum: 180
+            minimum: -180
+          - type: 'null'
+          description: Долгота центра поиска
+          title: Near Lon
+        description: Долгота центра поиска
+      - name: radius_km
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+            maximum: 200
+            exclusiveMinimum: 0
+          - type: 'null'
+          description: Радиус от центра, км
+          title: Radius Km
+        description: Радиус от центра, км
+      - name: limit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 200
+            minimum: 1
+          - type: 'null'
+          description: Сколько объектов вернуть
+          title: Limit
+        description: Сколько объектов вернуть
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          description: Пропустить N первых объектов
+          default: 0
+          title: Offset
+        description: Пропустить N первых объектов
       responses:
         '200':
-          description: Successful Response
+          description: Каталог, отфильтрованный по запросу
           content:
             application/json:
               schema:
@@ -68,18 +147,33 @@ paths:
                 items:
                   $ref: '#/components/schemas/Place'
                 title: Response List Places Api V1 Places Get
+          headers:
+            X-Total-Count:
+              description: Сколько объектов подошло под фильтры, до применения limit/offset
+              schema:
+                type: integer
+                minimum: 0
+            X-Offset:
+              description: Смещение, с которого взята текущая страница
+              schema:
+                type: integer
+                minimum: 0
+        '422':
+          description: 'Некорректный параметр либо их комбинация: тело — список ошибок
+            валидации, а для `radius_km` без центра и неполного центра — строка с
+            объяснением'
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/ApiError'
+                - $ref: '#/components/schemas/HTTPValidationError'
         '503':
           description: Файл каталога недоступен или повреждён
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/places/{place_id}:
     get:
       tags:
@@ -134,6 +228,30 @@ paths:
                   type: string
                 type: array
                 title: Response List Categories Api V1 Categories Get
+        '503':
+          description: Файл каталога недоступен или повреждён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /api/v1/cities:
+    get:
+      tags:
+      - Places
+      summary: Города, представленные в каталоге
+      description: Города, для которых в данных реально есть объекты, — селектор города
+        не предлагает пустой выбор.
+      operationId: list_cities_api_v1_cities_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/CitySummary'
+                type: array
+                title: Response List Cities Api V1 Cities Get
         '503':
           description: Файл каталога недоступен или повреждён
           content:
@@ -282,6 +400,31 @@ components:
           - type: 'null'
       type: object
       title: CallbackPayload
+    CitySummary:
+      properties:
+        city:
+          type: string
+          title: City
+          description: Название города
+        place_count:
+          type: integer
+          minimum: 1.0
+          title: Place Count
+          description: Число объектов в этом городе
+        categories:
+          items:
+            type: string
+          type: array
+          title: Categories
+          description: Категории этих объектов
+      type: object
+      required:
+      - city
+      - place_count
+      - categories
+      title: CitySummary
+      description: One city present in the catalog; the seed data holds a single one
+        for now.
     HTTPValidationError:
       properties:
         detail:
