@@ -12,11 +12,12 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+from server.catalog import city_matches
 from server.schemas import Location, Place, RouteRequest, RouteStop
 
 EARTH_RADIUS_KM = 6371.0
 
-# Effective door-to-door city speed inside Moscow, including waiting for transport.
+# Effective door-to-door city speed, including waiting for transport.
 TRANSIT_KMH = 20.0
 FIXED_TRANSFER_MINUTES = 6.0
 
@@ -54,13 +55,12 @@ class _Candidate:
 
 def filter_candidates(places: list[Place], request: RouteRequest) -> list[_Candidate]:
     """Apply the hard constraints: city, categories, Pushkin Card, budget and time ceiling."""
-    wanted_city = request.city.strip().lower()
     wanted_categories = {category.strip().lower() for category in request.categories}
     time_budget = int(request.duration_hours * 60)
 
     result: list[_Candidate] = []
     for place in places:
-        if place.city.lower() != wanted_city:
+        if not city_matches(request.city, place.city):
             continue
         if wanted_categories and place.category.lower() not in wanted_categories:
             continue

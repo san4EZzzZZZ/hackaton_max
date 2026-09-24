@@ -8,6 +8,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -115,8 +116,10 @@ def create_app(config: Settings | None = None) -> FastAPI:
     async def malformed_update(request: Request, exc: RequestValidationError) -> JSONResponse:
         """Ack unreadable payloads: a non-200 makes MAX redeliver the same update forever."""
         if request.url.path != "/webhook":
+            # Rejecting unknown request fields only helps if the answer says which one, and the
+            # errors array is the shape /openapi.json declares for 422.
             logger.info("Validation failed for %s: %s", request.url.path, str(exc.errors())[:500])
-            return JSONResponse(status_code=422, content={"detail": "validation failed"})
+            return JSONResponse(status_code=422, content={"detail": jsonable_encoder(exc.errors())})
         logger.warning("Ignoring malformed webhook payload: %s", str(exc.errors())[:300])
         return JSONResponse(status_code=200, content={"status": "ignored"})
 

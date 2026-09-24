@@ -10,6 +10,11 @@ paths:
       tags:
       - Places
       summary: Список достопримечательностей
+      description: 'Пустая выборка — это `200 []`, а не ошибка: коллекция по фильтру
+        пуста, сама она существует.
+
+        Исключение — `POST /routes/generate`, где нечего собирать, поэтому отвечает
+        404.'
       operationId: list_places_api_v1_places_get
       parameters:
       - name: city
@@ -19,9 +24,9 @@ paths:
           anyOf:
           - type: string
           - type: 'null'
-          description: Фильтр по городу
+          description: Фильтр по городу, подходит краткая форма — «Ростов»
           title: City
-        description: Фильтр по городу
+        description: Фильтр по городу, подходит краткая форма — «Ростов»
       - name: category
         in: query
         required: false
@@ -63,6 +68,12 @@ paths:
                 items:
                   $ref: '#/components/schemas/Place'
                 title: Response List Places Api V1 Places Get
+        '503':
+          description: Файл каталога недоступен или повреждён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
         '422':
           description: Validation Error
           content:
@@ -89,6 +100,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Place'
+        '404':
+          description: Места с таким идентификатором нет
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          description: Файл каталога недоступен или повреждён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
         '422':
           description: Validation Error
           content:
@@ -111,6 +134,12 @@ paths:
                   type: string
                 type: array
                 title: Response List Categories Api V1 Categories Get
+        '503':
+          description: Файл каталога недоступен или повреждён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
   /api/v1/routes/generate:
     post:
       tags:
@@ -130,6 +159,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RouteResponse'
+        '404':
+          description: Ни один объект не подошёл под фильтры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          description: Файл каталога недоступен или повреждён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
         '422':
           description: Validation Error
           content:
@@ -187,6 +228,17 @@ paths:
                 title: Response Root  Get
 components:
   schemas:
+    ApiError:
+      properties:
+        detail:
+          type: string
+          title: Detail
+          description: Что пошло не так
+      type: object
+      required:
+      - detail
+      title: ApiError
+      description: Body of every non-2xx answer these endpoints return.
     CallbackPayload:
       properties:
         callback_id:
@@ -380,7 +432,7 @@ components:
           type: string
           minLength: 2
           title: City
-          description: Город
+          description: Город; допускается краткая форма — «Ростов»
         categories:
           items:
             type: string
@@ -393,7 +445,8 @@ components:
             minimum: 0.0
           - type: 'null'
           title: Max Budget
-          description: Максимальный бюджет, руб.
+          description: Максимальная суммарная стоимость маршрута, руб. Принимается
+            и под именем `budget`
         is_pushkin_card_only:
           type: boolean
           title: Is Pushkin Card Only
@@ -406,6 +459,7 @@ components:
           title: Duration Hours
           description: Желаемая длительность, ч.
           default: 4.0
+      additionalProperties: false
       type: object
       required:
       - city

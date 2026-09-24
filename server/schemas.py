@@ -2,11 +2,27 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 class ApiModel(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore", str_strip_whitespace=True)
+
+
+class ApiError(ApiModel):
+    """Body of every non-2xx answer these endpoints return."""
+
+    detail: str = Field(..., description="Что пошло не так")
+
+
+# Declared on the route decorators so the codes land in /openapi.json and clients can be generated
+# against them instead of guessing from an "Undocumented" status.
+NOT_FOUND_RESPONSE = {"model": ApiError, "description": "Ни один объект не подошёл под фильтры"}
+PLACE_NOT_FOUND_RESPONSE = {"model": ApiError, "description": "Места с таким идентификатором нет"}
+CATALOG_UNAVAILABLE_RESPONSE = {
+    "model": ApiError,
+    "description": "Файл каталога недоступен или повреждён",
+}
 
 
 class Location(ApiModel):
@@ -31,9 +47,20 @@ class Place(ApiModel):
 
 
 class RouteRequest(ApiModel):
-    city: str = Field(..., min_length=2, description="Город")
+    # Unknown keys are rejected, not dropped: a silently ignored `budget` is indistinguishable from
+    # an ignored budget limit on the response side (issue #14).
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", str_strip_whitespace=True)
+
+    city: str = Field(
+        ..., min_length=2, description="Город; допускается краткая форма — «Ростов»"
+    )
     categories: list[str] = Field(default_factory=list, description="Фильтр по категориям")
-    max_budget: float | None = Field(None, ge=0, description="Максимальный бюджет, руб.")
+    max_budget: float | None = Field(
+        None,
+        ge=0,
+        validation_alias=AliasChoices("max_budget", "budget"),
+        description="Максимальная суммарная стоимость маршрута, руб. Принимается и под именем `budget`",
+    )
     is_pushkin_card_only: bool = Field(False, description="Только места по Пушкинской карте")
     duration_hours: float = Field(4.0, gt=0, le=12, description="Желаемая длительность, ч.")
 

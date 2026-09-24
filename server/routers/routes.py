@@ -8,7 +8,12 @@ from fastapi import APIRouter, HTTPException
 
 from server.catalog import CatalogError, load_places
 from server.routing import assemble_route, filter_candidates
-from server.schemas import RouteRequest, RouteResponse
+from server.schemas import (
+    CATALOG_UNAVAILABLE_RESPONSE,
+    NOT_FOUND_RESPONSE,
+    RouteRequest,
+    RouteResponse,
+)
 
 router = APIRouter(tags=["Routes"])
 
@@ -17,6 +22,7 @@ router = APIRouter(tags=["Routes"])
     "/routes/generate",
     response_model=RouteResponse,
     summary="Собрать маршрут выходного дня",
+    responses={404: NOT_FOUND_RESPONSE, 503: CATALOG_UNAVAILABLE_RESPONSE},
 )
 async def generate_route(request: RouteRequest) -> RouteResponse:
     try:
@@ -28,7 +34,7 @@ async def generate_route(request: RouteRequest) -> RouteResponse:
     if not candidates:
         raise HTTPException(
             status_code=404,
-            detail="No places match the requested city, categories, budget or duration",
+            detail="Под город, категории, бюджет и длительность не подошло ни одно место",
         )
 
     stops, total_minutes, total_cost = assemble_route(candidates, request)
