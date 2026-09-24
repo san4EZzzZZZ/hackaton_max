@@ -85,6 +85,7 @@ MAX не знает про Telegram-подобную `reply_markup`/постоя
 | `SSL_CA_BUNDLE` / `SSL_VERIFY` | доп. доверенный корень MAX (уже лежит в `certs/`) / строгость TLS |
 | `AUTO_SETUP` | регистрировать меню команд и подписку при старте |
 | `POLLING_TIMEOUT` / `POLLING_LIMIT` | параметры long polling (0..90 / 1..1000) |
+| `CORS_ALLOW_ORIGINS` | список origin'ов через запятую, которым разрешено звать `/api/v1` из браузера; пусто — `*` |
 
 Смена SQLite → PostgreSQL не требует кода: только `DATABASE_URL` (движок сам подставит
 `asyncpg`, upsert работает на обеих диалектах).

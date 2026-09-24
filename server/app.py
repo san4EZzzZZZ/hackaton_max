@@ -19,6 +19,7 @@ from bot.handlers.start import register
 from bot.keyboards import bot_commands
 from bot.models import Update
 from core.config import Settings, configure_logging, get_settings
+from server.cors import configure_cors
 from server.routers import api_router
 from server.database import (
     count_users,
@@ -98,6 +99,7 @@ def create_app(config: Settings | None = None) -> FastAPI:
         version="1.0.0",
         lifespan=lifespan,
     )
+    configure_cors(app)
     app.include_router(api_router)
 
     @app.post("/webhook")
