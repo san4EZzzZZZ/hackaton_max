@@ -91,10 +91,10 @@ def create_app(config: Settings | None = None) -> FastAPI:
             await dispose_db()
 
     app = FastAPI(
-        title="MAX Messenger Bot — MVP",
+        title="MAX Hackathon API",
         description=(
-            "Webhook receiver for the MAX Mini App bot plus the places & routes API "
-            "consumed by the Mini App frontend."
+            "Спецификация DATA-API: цифровой навигатор и конструктор маршрутов выходного дня "
+            "в мессенджере MAX."
         ),
         version="1.0.0",
         lifespan=lifespan,
