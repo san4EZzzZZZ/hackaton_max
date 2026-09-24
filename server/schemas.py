@@ -23,6 +23,10 @@ CATALOG_UNAVAILABLE_RESPONSE = {
     "model": ApiError,
     "description": "Файл каталога недоступен или повреждён",
 }
+DATABASE_UNAVAILABLE_RESPONSE = {
+    "model": ApiError,
+    "description": "База данных не отвечает",
+}
 
 
 class Location(ApiModel):
