@@ -184,6 +184,15 @@ python scripts/export_openapi.py            # перегенерировать
 python scripts/export_openapi.py --check    # проверка, которая будет крутить CI
 ```
 
+Тесты бэкенда — `pytest`, они не трогают ни `.env`, ни живую базу (`data/pytest.db`), ни MAX API:
+
+```bash
+python -m pytest tests -q
+```
+
+CI (`.github/workflows/ci.yml`) на каждом PR прогоняет тесты на Python 3.12, сверяет `DATA-API.yaml` с
+кодом и собирает образ.
+
 Семантика ответов, на которую стоит опираться:
 
 - `city` сопоставляется нестрого: `Ростов`, `ростов-на-Дону`, `Ростов на Дону` и `Ростов-на-Дона` — один

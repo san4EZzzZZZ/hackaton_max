@@ -1,3 +1,5 @@
 # Development-only tools. The image installs requirements.txt; nothing here is needed at runtime.
 # PyYAML renders DATA-API.yaml in scripts/export_openapi.py.
 PyYAML
+# Test suite: python -m pytest tests -q
+pytest

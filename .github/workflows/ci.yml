@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  tests:
+    name: pytest on Python 3.12
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # 3.12 is what the image ships; the local development interpreter is newer, so this is the
+      # only place the two can disagree.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --disable-pip-version-check -r requirements.txt -r dev-requirements.txt
+      - run: python -m pytest tests -q
+
+  contract:
+    name: DATA-API.yaml matches the application
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --disable-pip-version-check -r requirements.txt -r dev-requirements.txt
+      # Fails when a route changed and the published spec did not: regenerate it with
+      # `python scripts/export_openapi.py` and commit the result.
+      - run: python scripts/export_openapi.py --check
+
+  image:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # No registry login and no push — this job only proves the thing that deploys still builds.
+      - run: docker build -t max-bot-mvp:ci .
+      - run: |
+          docker run --rm -e BOT_TOKEN=ci-placeholder-token-not-real -e AUTO_SETUP=false \
+            -p 8099:8080 max-bot-mvp:ci &
+          for attempt in $(seq 1 30); do
+            sleep 2
+            if curl -fsS http://127.0.0.1:8099/health; then exit 0; fi
+          done
+          echo "the container never became live" && exit 1
