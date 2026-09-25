@@ -12,10 +12,17 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from server.schemas import PAGINATION_HEADERS
+
 ENV_VAR = "CORS_ALLOW_ORIGINS"
 
 # Only the methods the API actually declares; /webhook is server-to-server and never preflighted.
 ALLOWED_METHODS = ["GET", "POST", "OPTIONS"]
+
+# A cross-origin fetch hides every response header outside the CORS-safelisted set unless the server
+# names it here, so a documented header the client cannot read is a silent contract break. Derived from
+# the spec's own header block to keep the two from drifting apart again.
+EXPOSED_HEADERS = list(PAGINATION_HEADERS)
 
 # Preflight cache, seconds. Origins change on deploy, not per request.
 MAX_AGE = 600
@@ -35,6 +42,7 @@ def configure_cors(app: FastAPI) -> FastAPI:
         allow_credentials=False,
         allow_methods=ALLOWED_METHODS,
         allow_headers=["*"],
+        expose_headers=EXPOSED_HEADERS,
         max_age=MAX_AGE,
     )
     return app

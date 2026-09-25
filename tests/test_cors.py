@@ -40,6 +40,22 @@ def test_simple_requests_carry_the_wildcard_by_default(client: TestClient) -> No
         assert response.headers["access-control-allow-origin"] == "*", path
 
 
+def test_page_totals_are_readable_from_a_browser(client: TestClient, places: list[dict]) -> None:
+    # A browser withholds any non-safelisted response header from JS unless the server names it in
+    # `Access-Control-Expose-Headers`. TestClient hands headers back either way, so this stores the
+    # middleware's own answer — which is exactly what the Mini App has to work against.
+    response = client.get(
+        "/api/v1/places", params={"limit": 1}, headers={"Origin": BROWSER_ORIGIN}
+    )
+    assert len(response.json()) == 1
+    assert response.headers["x-total-count"] == str(len(places)), "the total is the selection, not the page"
+    exposed = {
+        name.strip().lower()
+        for name in response.headers["access-control-expose-headers"].split(",")
+    }
+    assert {"x-total-count", "x-offset"} <= exposed
+
+
 def test_generate_route_is_reachable_cross_origin(client: TestClient) -> None:
     response = client.post(
         "/api/v1/routes/generate",
