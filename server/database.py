@@ -6,7 +6,19 @@ import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
-from sqlalchemy import BigInteger, DateTime, MetaData, String, case, event, func, select
+from sqlalchemy import (
+    BigInteger,
+    DateTime,
+    Float,
+    Integer,
+    MetaData,
+    String,
+    Text,
+    case,
+    event,
+    func,
+    select,
+)
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.engine import make_url
@@ -59,6 +71,32 @@ class User(Base):
 
     def __repr__(self) -> str:  # pragma: no cover - debugging helper
         return f"<User {self.user_id} @{self.username or self.first_name}>"
+
+
+class SavedRoute(Base):
+    """A generated route the visitor chose to keep; `payload` is the API answer, stored verbatim."""
+
+    __tablename__ = "saved_routes"
+
+    # SQLite aliases rowid only to a column declared exactly INTEGER, so a plain BigInteger primary key
+    # would not autoincrement there; PostgreSQL keeps BIGINT.
+    route_id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
+    # Client-supplied and unverified — see the docstring of server/routers/saved_routes.py.
+    user_id: Mapped[int | None] = mapped_column(BigInteger, index=True)
+    city: Mapped[str] = mapped_column(String(128))
+    title: Mapped[str] = mapped_column(String(256))
+    # SQLite has no JSON type, so the route travels as text and is parsed on the way out.
+    payload: Mapped[str] = mapped_column(Text)
+    total_cost: Mapped[float] = mapped_column(Float)
+    stop_count: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging helper
+        return f"<SavedRoute {self.route_id} {self.city} ({self.stop_count} stops)>"
 
 
 engine: AsyncEngine = create_async_engine(
@@ -194,3 +232,51 @@ async def upsert_user(
 async def count_users(session: AsyncSession) -> int:
     result = await session.execute(select(func.count()).select_from(User))
     return int(result.scalar_one())
+
+
+async def save_route(
+    session: AsyncSession,
+    *,
+    city: str,
+    title: str,
+    payload: str,
+    total_cost: float,
+    stop_count: int,
+    user_id: int | None = None,
+) -> SavedRoute:
+    """Append one route; the id and the timestamp come back from the database."""
+    row = SavedRoute(
+        city=city,
+        title=title,
+        payload=payload,
+        total_cost=total_cost,
+        stop_count=stop_count,
+        user_id=user_id,
+    )
+    session.add(row)
+    await session.flush()
+    return row
+
+
+async def get_saved_route(session: AsyncSession, route_id: int) -> SavedRoute | None:
+    return await session.get(SavedRoute, route_id)
+
+
+async def list_saved_routes(
+    session: AsyncSession,
+    *,
+    user_id: int | None = None,
+    limit: int | None = None,
+    offset: int = 0,
+) -> tuple[list[SavedRoute], int]:
+    """Newest first, and the count is of the whole selection — before `limit` cuts it."""
+    conditions = [] if user_id is None else [SavedRoute.user_id == user_id]
+    total = (
+        await session.execute(select(func.count()).select_from(SavedRoute).where(*conditions))
+    ).scalar_one()
+    statement = select(SavedRoute).where(*conditions).order_by(SavedRoute.route_id.desc())
+    statement = statement.offset(offset)
+    if limit is not None:
+        statement = statement.limit(limit)
+    rows = (await session.execute(statement)).scalars().all()
+    return list(rows), int(total)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
@@ -116,3 +118,32 @@ class RouteResponse(ApiModel):
         default_factory=list,
         description="Те же точки с таймингами переходов; пуст, если маршрут не собран",
     )
+
+
+class SaveRouteRequest(RouteResponse):
+    """Ответ генератора, отправленный обратно без изменений, плюс необязательный владелец.
+
+    Наследование держит обещание буквальный: сохраняется ровно то, что вернул
+    `POST /routes/generate`. Неизвестные ключи отвергаются по той же причине, что и у `RouteRequest`.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", str_strip_whitespace=True)
+
+    user_id: int | None = Field(
+        None,
+        ge=1,
+        description="Владелец маршрута. Не аутентифицируется: см. README, раздел про сохранённые маршруты",
+    )
+
+
+class SavedRouteResponse(ApiModel):
+    """Сохранённый маршрут: исходный ответ генератора под собственным постоянным идентификатором."""
+
+    route_id: int = Field(..., description="Идентификатор записи, выдаёт база")
+    user_id: int | None = Field(None, description="Владелец, если его передали при сохранении")
+    title: str
+    city: str
+    total_cost: float = Field(..., ge=0, description="Стоимость маршрута на момент сохранения, руб.")
+    stop_count: int = Field(..., ge=0, description="Число точек в сохранённом маршруте")
+    created_at: datetime = Field(..., description="Момент сохранения, UTC")
+    route: RouteResponse = Field(..., description="Ответ генератора ровно так, как он сохранён")
