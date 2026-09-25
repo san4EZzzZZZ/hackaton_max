@@ -1,0 +1,146 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: rise-in 0.4s ease both;
+}
+
+.back {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  color: var(--ink-900);
+  transition: transform 0.12s ease;
+}
+
+.back:active {
+  transform: scale(0.92);
+}
+
+.back svg {
+  width: 20px;
+  height: 20px;
+}
+
+.headerTitle {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.section {
+  margin-top: 28px;
+  width: 100%;
+  animation: rise-in 0.4s ease 0.08s both;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.durations {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.duration {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 4px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.12s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.duration:active {
+  transform: scale(0.95);
+}
+
+.durationValue {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.durationUnit {
+  font-size: 11px;
+  color: var(--ink-400);
+}
+
+.durationActive {
+  background: linear-gradient(160deg, #2fd572 0%, #0aa06e 100%);
+  color: #fff;
+  box-shadow: var(--shadow-button);
+}
+
+.durationActive .durationUnit {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chip {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-900);
+  border: 1.5px solid transparent;
+  transition: transform 0.12s ease, border-color 0.2s ease, color 0.2s ease,
+    background 0.2s ease;
+}
+
+.chip:active {
+  transform: scale(0.95);
+}
+
+.chipActive {
+  border-color: var(--green-600);
+  background: var(--surface-tint);
+  color: var(--green-900);
+}
+
+.chipHint {
+  width: 100%;
+  margin-top: 4px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-400);
+}
+
+.emptyHint {
+  font-size: 14px;
+  color: var(--ink-500);
+}
+
+.submitError {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #fdecea;
+  color: var(--danger);
+  font-size: 14px;
+  line-height: 1.45;
+  animation: rise-in 0.3s ease both;
+}
+
+.footer {
+  margin-top: auto;
+  padding-top: 28px;
+  width: 100%;
+}
