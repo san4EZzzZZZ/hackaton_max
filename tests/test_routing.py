@@ -19,6 +19,7 @@ from server.routing import (
     haversine_km,
     optimize_order,
     travel_minutes,
+    within_radius_km,
 )
 from server.schemas import Location, Place, RouteRequest
 
@@ -206,3 +207,14 @@ def test_request_refuses_the_fields_nobody_can_interpret() -> None:
         request(city="А")
     with pytest.raises(ValidationError):
         request(max_budget=-5)
+
+
+def test_the_radius_test_is_a_straight_line_from_the_center() -> None:
+    near = Location(lat=47.23, lon=39.73)
+    far = Location(lat=47.9, lon=39.73)
+    assert within_radius_km(near, CENTER, 5.0)
+    assert not within_radius_km(far, CENTER, 5.0)
+    assert within_radius_km(CENTER, CENTER, 0.001), "the center itself sits at zero distance"
+    # The boundary counts as inside: an object exactly `radius_km` away is still offered.
+    assert within_radius_km(near, CENTER, haversine_km(CENTER, near))
+    assert not within_radius_km(near, CENTER, haversine_km(CENTER, near) - 0.001)

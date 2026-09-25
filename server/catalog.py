@@ -63,6 +63,41 @@ def load_places() -> tuple[Place, ...]:
     return tuple(places)
 
 
+def invalidate_cache() -> None:
+    """Forget the memoized catalog so an edited `data/places.json` is served without a restart."""
+    load_places.cache_clear()
+
+
 def known_categories() -> tuple[str, ...]:
     """Categories the seed data actually contains, in catalog order."""
     return tuple(dict.fromkeys(place.category for place in load_places()))
+
+
+def known_cities() -> dict[str, list[Place]]:
+    """Cities present in the data, mapped to their objects, in order of first appearance."""
+    grouped: dict[str, list[Place]] = {}
+    for place in load_places():
+        grouped.setdefault(place.city, []).append(place)
+    return grouped
+
+
+def _search_blob(place: Place) -> str:
+    return " ".join(
+        text
+        for text in (place.title, place.description, place.address, place.category)
+        if text
+    ).lower()
+
+
+def search_matches(place: Place, query: str) -> bool:
+    """Free-text match over the fields a visitor actually reads.
+
+    Every word of the query has to appear somewhere in the object, so «девушка кувшин» narrows down to
+    one place while «фонтан» alone still finds Театральная площадь — the word is only in the description.
+    """
+    tokens = [token for token in _TOKEN_SPLIT.split(query.lower()) if token]
+    if not tokens:
+        return False
+    blob = _search_blob(place)
+    return all(token in blob for token in tokens)
+
