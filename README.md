@@ -24,6 +24,7 @@ server/cors.py        CORS для браузерных запросов Mini App
 server/app.py         FastAPI: lifespan, POST /webhook, /health
 scripts/export_openapi.py
                       генерация DATA-API.yaml из живого приложения (--check для CI)
+frontend/             Mini App (React + Vite): онбординг → выбор времени/категорий → маршрут
 main.py               единая точка входа: --mode=webhook|polling|setup-webhook
 ```
 
@@ -135,6 +136,47 @@ fingerprint: D2:6D:2D:02:31:B7:C3:9F:92:CC:73:85:12:BA:54:10:35:19:E4:40:5D:68:B
 
 Контракт для фронтенда — `DATA-API.yaml` в корне. Он не правится руками: после любого изменения эндпоинтов
 пересоберите его из живого приложения и коммитьте вместе с кодом.
+
+## Mini App (frontend/) — сырая альфа-версия
+
+React 18 + Vite, CSS-модули, без сторонних UI-библиотек. Фронтенд **не меняет бэкенд**: только
+существующие эндпоинты `/api/v1` из `DATA-API.yaml`. Статус — рабочий прототип: три экрана
+(онбординг по макету → выбор времени 1–4 ч и категорий → маршрут с таймингами переходов),
+состояния loading/error/empty, safe-area и haptics при открытии внутри WebView MAX/Telegram
+(feature-detection в `src/lib/messenger.js`). Что ещё не делалось: тёмная тема, карта, экран
+справки по пути из макета, тесты.
+
+Запуск для ревью (три процесса):
+
+```bash
+# 1. API бэкенда (из корня репозитория, .env с BOT_TOKEN не обязателен для одних только /api)
+python main.py --mode=webhook            # или: uvicorn server.app:app --port 8080
+
+# 2. Mini App: http://localhost:5173, /api проксируется на VITE_BACKEND_URL (по умолчанию :8080)
+cd frontend && npm install && npm run dev
+
+# 3. (только для демо в мессенджере) HTTPS-туннель на фронтенд
+cloudflared tunnel --url http://localhost:5173
+```
+
+Прод-сборка статики — `npm run build` в `frontend/` (результат в `dist/`, адрес API задаётся
+переменной сборки `VITE_API_URL`).
+
+### Ограничение MAX: регистрация ссылок
+
+Проверено живым запросом (`tools/test_buttons.py`, не коммитится): кнопка `open_app` с URL,
+не привязанным к боту в кабинете `business.max.ru`, роняет всё сообщение с
+`404 not.found / Link not found (LinkPK ... space=TAMTAM)`. Обычные `link`-кнопки принимают
+любой HTTPS-URL. Поэтому в `.env`:
+
+- `MINI_APP_URL` — адрес мини-приложения **после** привязки в кабинете; тогда «🧭 Открыть
+  навигатор» открывается нативным WebView MAX;
+- без привязки `MINI_APP_URL` держится закомментированным, а `PUBLIC_BASE_URL` указывает на
+  публичный HTTPS-адрес фронтенда — «🌐 Веб-версия» открывает то же приложение в браузере.
+
+Для туннельного URL нужен `allowedHosts: ['.trycloudflare.com']` в `vite.config.js` (уже
+настроено), а адрес меняется при каждом перезапуске туннеля — после смены обновите `.env` и
+перезапустите бота.
 
 ```bash
 pip install -r dev-requirements.txt

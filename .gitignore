@@ -218,6 +218,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 # --- project: MAX bot runtime artifacts -----------------------------------
+tools/
 data/*
 !data/.gitkeep
 !data/*.json
