@@ -347,6 +347,7 @@ paths:
         schema:
           anyOf:
           - type: integer
+            maximum: 9223372036854775807
             minimum: 1
           - type: 'null'
           description: Только маршруты этого владельца
@@ -419,7 +420,11 @@ paths:
         required: true
         schema:
           type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          description: Идентификатор записи, выдаёт база
           title: Route Id
+        description: Идентификатор записи, выдаёт база
       responses:
         '200':
           description: Successful Response
@@ -889,6 +894,7 @@ components:
         user_id:
           anyOf:
           - type: integer
+            maximum: 9.223372036854776e+18
             minimum: 1.0
           - type: 'null'
           title: User Id

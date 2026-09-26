@@ -30,6 +30,10 @@ DATABASE_UNAVAILABLE_RESPONSE = {
     "description": "База данных не отвечает",
 }
 
+# SQLite stores integers in 8 bytes and raises OverflowError past this bound instead of answering, so
+# ids are capped at validation: an out-of-range id is a client mistake, not a 500.
+BIGINT_MAX = 9_223_372_036_854_775_807
+
 # Page totals travel as headers, not as a JSON envelope: `/places` answers a bare array today, and
 # wrapping it would break the Mini App that is already wired to that shape.
 PAGINATION_HEADERS = {
@@ -132,6 +136,7 @@ class SaveRouteRequest(RouteResponse):
     user_id: int | None = Field(
         None,
         ge=1,
+        le=BIGINT_MAX,
         description="Владелец маршрута. Не аутентифицируется: см. README, раздел про сохранённые маршруты",
     )
 

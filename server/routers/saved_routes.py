@@ -16,7 +16,7 @@ keeps the generator's uuid4 for traceability, while the outer integer is the per
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, HTTPException, Path, Query, Response
 from sqlalchemy.exc import SQLAlchemyError
 
 from server.catalog import CatalogError, load_places
@@ -28,6 +28,7 @@ from server.database import (
     session_scope,
 )
 from server.schemas import (
+    BIGINT_MAX,
     DATABASE_UNAVAILABLE_RESPONSE,
     ApiError,
     PAGINATION_HEADERS,
@@ -146,7 +147,9 @@ async def create_saved_route(request: SaveRouteRequest) -> SavedRouteResponse:
 )
 async def read_saved_routes(
     response: Response,
-    user_id: int | None = Query(None, ge=1, description="Только маршруты этого владельца"),
+    user_id: int | None = Query(
+        None, ge=1, le=BIGINT_MAX, description="Только маршруты этого владельца"
+    ),
     limit: int | None = Query(None, ge=1, le=200, description="Сколько записей вернуть"),
     offset: int = Query(0, ge=0, description="Пропустить N первых записей"),
 ) -> list[SavedRouteResponse]:
@@ -170,7 +173,9 @@ async def read_saved_routes(
     summary="Карточка сохранённого маршрута",
     responses={404: ROUTE_NOT_FOUND_RESPONSE, 503: DATABASE_UNAVAILABLE_RESPONSE},
 )
-async def read_saved_route(route_id: int) -> SavedRouteResponse:
+async def read_saved_route(
+    route_id: int = Path(..., ge=1, le=BIGINT_MAX, description="Идентификатор записи, выдаёт база"),
+) -> SavedRouteResponse:
     try:
         async with session_scope() as session:
             row = await get_saved_route(session, route_id)

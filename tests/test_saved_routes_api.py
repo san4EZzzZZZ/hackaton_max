@@ -76,6 +76,21 @@ def test_a_key_nobody_recognises_is_refused(client: TestClient) -> None:
     assert any("owner" in str(error["loc"]) for error in errors), "the answer must name the bad key"
 
 
+def test_an_id_too_large_for_the_column_is_a_422_and_not_a_500(client: TestClient) -> None:
+    """sqlite raises OverflowError past 8 bytes, and that is not a SQLAlchemyError.
+
+    So the exception escapes the handlers and answers 500. The bound has to be enforced before the
+    query, because the same number arrives both as a path id and as a claimed owner.
+    """
+    too_big = 2**63
+    assert client.get(f"{ROUTES}/{too_big}").status_code == 422
+    assert client.get(ROUTES, params={"user_id": too_big}).status_code == 422
+    assert client.post(ROUTES, json={**generated(client), "user_id": too_big}).status_code == 422
+
+    # The largest addressable id still reaches the database and is answered as a plain miss.
+    assert client.get(f"{ROUTES}/{too_big - 1}").status_code == 404
+
+
 def test_a_missing_route_is_a_404_and_never_a_403(client: TestClient) -> None:
     # Nothing on this API authenticates, so "not yours" cannot exist as an answer — only "not there".
     response = client.get(f"{ROUTES}/4242")
