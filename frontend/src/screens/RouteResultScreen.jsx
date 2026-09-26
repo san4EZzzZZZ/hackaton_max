@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Map as GlMap, setWorkerUrl } from 'maplibre-gl'
-import maplibreWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
+import maplibreWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import PrimaryButton from '../components/PrimaryButton.jsx'
 import { ArrowLeftIcon, SwapIcon } from '../components/icons.jsx'
