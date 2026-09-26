@@ -1,5 +1,7 @@
 # Development-only tools. The image installs requirements.txt; nothing here is needed at runtime.
+# Pinned for the same reason as the runtime set: CI installs these on every run, and a floating pytest
+# major version can break the suite without a single line of application code changing.
 # PyYAML renders DATA-API.yaml in scripts/export_openapi.py.
-PyYAML
+PyYAML==6.0.3
 # Test suite: python -m pytest tests -q
-pytest
+pytest==9.1.1

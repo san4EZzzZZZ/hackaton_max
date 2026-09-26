@@ -738,7 +738,8 @@ components:
           - type: string
           - type: 'null'
           title: Image Url
-          description: Ссылка на изображение
+          description: Миниатюра с Wikimedia Commons, ссылка на чужой хост; null —
+            подходящего фото нет
       type: object
       required:
       - id

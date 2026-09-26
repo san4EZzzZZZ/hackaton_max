@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 from pydantic import ValidationError
@@ -51,6 +52,21 @@ def test_load_places_returns_validated_models(places: list[dict]) -> None:
     assert {type(item) for item in loaded} == {Place}
     assert len({item.id for item in loaded}) == len(loaded), "place ids must be unique"
     assert all(item.rating <= 5 and item.visit_duration_minutes >= 15 for item in loaded)
+
+
+def test_image_links_are_commons_thumbnails_or_a_deliberate_null() -> None:
+    # The seed file is read here rather than the loaded models on purpose: a model fills in
+    # `image_url = None` for a record that never mentioned the key, which is the exact difference this
+    # test has to see. An absent key and a "we looked, nothing suitable" null must not collide.
+    raw = json.loads(catalog_module.DATA_FILE.read_text(encoding="utf-8"))
+    assert all("image_url" in record for record in raw)
+    filled = [record["image_url"] for record in raw if record["image_url"]]
+    assert len(filled) >= len(raw) - 2, "the demo catalog is meant to be mostly illustrated"
+    # Hotlinked thumbnails only: nothing here may turn into a request our server makes at runtime.
+    assert all(
+        url.startswith("https://") and urlsplit(url).hostname.endswith(".wikimedia.org")
+        for url in filled
+    )
 
 
 def test_a_missing_seed_file_is_a_catalog_error(tmp_path: Path, monkeypatch) -> None:

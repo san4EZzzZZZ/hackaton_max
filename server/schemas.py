@@ -66,7 +66,10 @@ class Place(ApiModel):
     working_hours: str | None = Field(None, description="Часы работы")
     rating: float = Field(5.0, ge=0, le=5, description="Рейтинг 0..5")
     visit_duration_minutes: int = Field(60, ge=15, description="Рекомендуемая длительность визита")
-    image_url: str | None = Field(None, description="Ссылка на изображение")
+    image_url: str | None = Field(
+        None,
+        description="Миниатюра с Wikimedia Commons, ссылка на чужой хост; null — подходящего фото нет",
+    )
 
 
 class CitySummary(ApiModel):
