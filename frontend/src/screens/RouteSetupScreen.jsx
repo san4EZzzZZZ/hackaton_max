@@ -70,6 +70,14 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
     )
   }
 
+  const q = query.trim().toLowerCase()
+  const visiblePlaces = q
+    ? KNOWN_PLACES.filter(
+        (place) =>
+          place.name.toLowerCase().includes(q) || place.address.toLowerCase().includes(q),
+      )
+    : KNOWN_PLACES
+
   const handleSubmit = async () => {
     setSubmitting(true)
     setSubmitError(null)
@@ -225,12 +233,10 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
                 />
               </button>
 
-              <p className={styles.sheetSection}>Популярные точки в центре</p>
-              {KNOWN_PLACES.filter(
-                (place) =>
-                  place.name.toLowerCase().includes(query.trim().toLowerCase()) ||
-                  place.address.toLowerCase().includes(query.trim().toLowerCase()),
-              ).map(({ name, address }) => (
+              <p className={styles.sheetSection}>
+                {q ? 'Результаты поиска' : 'Популярные точки в центре'}
+              </p>
+              {visiblePlaces.map(({ name, address }) => (
                 <button
                   key={name}
                   type="button"
@@ -250,6 +256,9 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
                   />
                 </button>
               ))}
+              {q && visiblePlaces.length === 0 && (
+                <p className={styles.searchEmpty}>Ничего не найдено. Попробуйте другой запрос.</p>
+              )}
             </div>
 
             <div className={styles.sheetFooter}>

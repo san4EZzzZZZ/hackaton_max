@@ -387,6 +387,13 @@
   color: #6b7280;
 }
 
+.searchEmpty {
+  padding: 6px 2px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #9ca3af;
+}
+
 /* Figma: option card min 62h, radius 12, border 1.5px #F3F4F6; active = #10B981 */
 .row {
   flex: none;

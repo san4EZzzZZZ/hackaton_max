@@ -1,19 +1,28 @@
-.header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  animation: rise-in 0.4s ease both;
+/* Figma «Frame 2 — Настройка прогулки»: карта сверху, белая шторка ~62% снизу. */
+.screen {
+  position: fixed;
+  inset: 0;
+  background: #d7e1eb;
 }
 
+.map {
+  position: absolute;
+  inset: 0;
+}
+
+/* Figma: круг 56px #474747/50%, белая стрелка, поверх карты */
 .back {
-  width: 40px;
-  height: 40px;
-  flex: none;
-  border-radius: 12px;
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 16px);
+  left: 24px;
+  z-index: 800;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
+  background: rgba(71, 71, 71, 0.5);
+  color: #fff;
   transition: transform 0.12s ease;
 }
 
@@ -22,179 +31,206 @@
 }
 
 .back svg {
+  width: 24px;
+  height: 24px;
+}
+
+.sheet {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  z-index: 700;
+  width: 100%;
+  max-width: 480px;
+  height: 62dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  padding: 0 24px calc(env(safe-area-inset-bottom) + 24px);
+  box-shadow: 0 -12px 40px rgba(17, 24, 39, 0.18);
+  animation: sheet-rise 0.35s ease both;
+}
+
+@keyframes sheet-rise {
+  from {
+    transform: translate(-50%, 100%);
+  }
+  to {
+    transform: translate(-50%, 0);
+  }
+}
+
+.handle {
+  flex: none;
+  width: 36px;
+  height: 4px;
+  margin: 12px auto 0;
+  border-radius: 2px;
+  background: #e5e7eb;
+}
+
+.topRow {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.topText {
+  min-width: 0;
+}
+
+/* Figma: pill 102×27 r13.5 #ECFDF5, текст #059669 12/600 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 27px;
+  padding: 0 12px;
+  border-radius: 13.5px;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.title {
+  margin-top: 8px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #111827;
+}
+
+.stats {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  padding-top: 30px;
+}
+
+.statMain {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.statSub {
+  font-size: 12px;
+  line-height: 1.2;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.stops {
+  flex: 1 1 auto;
+  min-height: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.stops::-webkit-scrollbar {
+  display: none;
+}
+
+/* Figma: карточка 353×58, r12, border 1.5px #F3F4F6 */
+.stop {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 59px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1.5px solid #f3f4f6;
+  animation: rise-in 0.4s ease both;
+}
+
+.order {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #10b981;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stopText {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stopTitle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stopSub {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.swap {
+  flex: none;
+  color: #9ca3af;
+}
+
+.swap svg {
   width: 20px;
   height: 20px;
 }
 
-.headerTitle {
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.summary {
-  margin-top: 20px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  animation: rise-in 0.4s ease 0.06s both;
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 14px 6px;
-  border-radius: 14px;
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
-}
-
-.statValue {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.statLabel {
-  font-size: 11.5px;
-  color: var(--ink-400);
-}
-
-.stops {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  list-style: none;
-}
-
-.stop {
-  display: flex;
-  gap: 12px;
-  padding: 16px;
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
-  animation: rise-in 0.4s ease both;
-}
-
-.timeline {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.order {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(160deg, #2fd572 0%, #0aa06e 100%);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.travel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  color: var(--ink-400);
-  font-size: 10.5px;
-  padding-top: 6px;
-}
-
-.travel svg {
-  width: 16px;
-  height: 16px;
-}
-
-.stopBody {
-  min-width: 0;
-}
-
-.stopHead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.stopTitle {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.rating {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #b57e10;
-}
-
-.rating svg {
-  width: 13px;
-  height: 13px;
-  color: #f5b301;
-}
-
-.stopDesc {
-  margin-top: 5px;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--ink-400);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.meta {
-  margin-top: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 12px;
-}
-
-.metaItem {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  color: var(--ink-500);
-}
-
-.metaItem svg {
-  width: 14px;
-  height: 14px;
-  color: var(--green-600);
-}
-
-.arrival {
-  margin-top: 8px;
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--green-900);
-}
-
 .empty {
-  margin-top: 24px;
-  text-align: center;
+  margin-top: 18px;
   font-size: 14px;
-  color: var(--ink-500);
+  line-height: 1.45;
+  color: #6b7280;
 }
 
 .footer {
   flex: none;
-  padding-top: 16px;
-  padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
-  width: 100%;
+  padding-top: 18px;
+}
+
+.attribution {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.2;
+  color: #9ca3af;
 }

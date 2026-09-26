@@ -86,6 +86,20 @@ export function SearchIcon(props) {
   )
 }
 
+export function SwapIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M4 9h13m0 0l-3.5-3.5M17 9l-3.5 3.5M20 15H7m0 0l3.5-3.5M7 15l3.5 3.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 export function WalkIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>

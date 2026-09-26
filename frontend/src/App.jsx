@@ -29,7 +29,6 @@ export default function App() {
       <RouteResultScreen
         route={route}
         onEdit={() => setScreen('setup')}
-        onRestart={() => setScreen('onboarding')}
       />
     )
   }
