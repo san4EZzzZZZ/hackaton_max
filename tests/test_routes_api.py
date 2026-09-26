@@ -26,6 +26,9 @@ def test_a_matching_request_returns_a_timed_route(client: TestClient) -> None:
         "title",
         "city",
         "total_duration_hours",
+        "total_duration_minutes",
+        "total_distance_m",
+        "slack_minutes",
         "total_cost",
         "places",
         "stops",
@@ -36,6 +39,23 @@ def test_a_matching_request_returns_a_timed_route(client: TestClient) -> None:
     assert [stop["order"] for stop in route["stops"]] == list(range(1, len(route["stops"]) + 1))
     assert route["total_duration_hours"] <= 4
     assert route["total_cost"] >= 0
+    assert {"distance_m_from_prev", "travel_minutes_from_prev"} <= set(route["stops"][0])
+
+
+def test_the_answer_adds_up_to_the_numbers_it_reports(client: TestClient) -> None:
+    route = generate(client, duration_hours=4).json()
+    stops = route["stops"]
+
+    # Two groups of fields describe one walk, so they have to agree with each other: the aggregates and
+    # the per-stop timeline, and the hours the client rounds against the minutes it should not round.
+    assert route["total_duration_minutes"] == sum(
+        stop["travel_minutes_from_prev"] + stop["visit_duration_minutes"] for stop in stops
+    )
+    assert route["total_duration_hours"] == round(route["total_duration_minutes"] / 60, 2)
+    assert route["total_distance_m"] == sum(stop["distance_m_from_prev"] for stop in stops)
+    assert route["slack_minutes"] == 240 - route["total_duration_minutes"]
+    assert stops[0]["travel_minutes_from_prev"] == stops[0]["distance_m_from_prev"] == 0
+    assert all(stop["distance_m_from_prev"] >= 0 for stop in stops)
 
 
 def test_two_identical_requests_agree_except_for_their_identifier(client: TestClient) -> None:
@@ -94,7 +114,7 @@ def test_constraints_that_leave_nothing_behind_answer_404(client: TestClient) ->
     assert generate(client, categories=["такого категория нет"]).status_code == 404
     # The cheapest Pushkin Card object costs 300, so this budget cannot admit any of them.
     assert generate(client, is_pushkin_card_only=True, max_budget=299).status_code == 404
-    # 15 minutes is shorter than the shortest recommended visit in the catalog (30).
+    # Twenty minutes is the shortest recommended visit in the catalog, so a quarter of an hour fits none.
     assert generate(client, duration_hours=0.25).status_code == 404
 
 
