@@ -64,70 +64,72 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
         <h1 className={styles.headerTitle}>Параметры прогулки</h1>
       </header>
 
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Сколько времени есть?</h2>
-        <div className={styles.durations} role="radiogroup" aria-label="Длительность">
-          {DURATIONS.map((hours) => (
-            <button
-              key={hours}
-              type="button"
-              role="radio"
-              aria-checked={duration === hours}
-              className={`${styles.duration} ${duration === hours ? styles.durationActive : ''}`}
-              onClick={() => setDuration(hours)}
-            >
-              <span className={styles.durationValue}>{hours}</span>
-              <span className={styles.durationUnit}>{pluralHours(hours)}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Что интересно?</h2>
-        {loadError && (
-          <ErrorState
-            message={loadError.message}
-            onRetry={() => {
-              setCategories(null)
-              setLoadError(null)
-              setReloadKey((key) => key + 1)
-            }}
-          />
-        )}
-        {!loadError && !categories && <Loading label="Загружаем категории…" />}
-        {categories?.length === 0 && (
-          <p className={styles.emptyHint}>Каталог пока пуст — маршрут соберём из всех мест.</p>
-        )}
-        {categories?.length > 0 && (
-          <div className={styles.chips}>
-            {categories.map((name) => (
+      <div className="screen__body">
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Сколько времени есть?</h2>
+          <div className={styles.durations} role="radiogroup" aria-label="Длительность">
+            {DURATIONS.map((hours) => (
               <button
-                key={name}
+                key={hours}
                 type="button"
-                aria-pressed={selected.includes(name)}
-                className={`${styles.chip} ${selected.includes(name) ? styles.chipActive : ''}`}
-                onClick={() => toggleCategory(name)}
+                role="radio"
+                aria-checked={duration === hours}
+                className={`${styles.duration} ${duration === hours ? styles.durationActive : ''}`}
+                onClick={() => setDuration(hours)}
               >
-                {name}
+                <span className={styles.durationValue}>{hours}</span>
+                <span className={styles.durationUnit}>{pluralHours(hours)}</span>
               </button>
             ))}
-            <p className={styles.chipHint}>
-              {selected.length === 0
-                ? 'Можно ничего не выбирать — тогда возьмём лучшие места всех категорий.'
-                : `Выбрано категорий: ${selected.length}`}
-            </p>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Что интересно?</h2>
+          {loadError && (
+            <ErrorState
+              message={loadError.message}
+              onRetry={() => {
+                setCategories(null)
+                setLoadError(null)
+                setReloadKey((key) => key + 1)
+              }}
+            />
+          )}
+          {!loadError && !categories && <Loading label="Загружаем категории…" />}
+          {categories?.length === 0 && (
+            <p className={styles.emptyHint}>Каталог пока пуст — маршрут соберём из всех мест.</p>
+          )}
+          {categories?.length > 0 && (
+            <div className={styles.chips}>
+              {categories.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  aria-pressed={selected.includes(name)}
+                  className={`${styles.chip} ${selected.includes(name) ? styles.chipActive : ''}`}
+                  onClick={() => toggleCategory(name)}
+                >
+                  {name}
+                </button>
+              ))}
+              <p className={styles.chipHint}>
+                {selected.length === 0
+                  ? 'Можно ничего не выбирать — тогда возьмём лучшие места всех категорий.'
+                  : `Выбрано категорий: ${selected.length}`}
+              </p>
+            </div>
+          )}
+        </section>
+
+        {submitError && (
+          <div className={styles.submitError} role="alert">
+            {submitError.status === 404
+              ? 'Не удалось собрать маршрут под эти условия. Попробуйте другое время или категории.'
+              : submitError.message}
           </div>
         )}
-      </section>
-
-      {submitError && (
-        <div className={styles.submitError} role="alert">
-          {submitError.status === 404
-            ? 'Не удалось собрать маршрут под эти условия. Попробуйте другое время или категории.'
-            : submitError.message}
-        </div>
-      )}
+      </div>
 
       <div className={styles.footer}>
         <PrimaryButton onClick={handleSubmit} disabled={submitting}>

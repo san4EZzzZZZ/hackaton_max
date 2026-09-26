@@ -20,16 +20,17 @@ export function ClockIcon(props) {
   )
 }
 
-export function SparkleRouteIcon(props) {
+export function SparklesIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
       <path
-        d="M5 19c0-3 2.5-4 5-4s5-1 5-4a3.5 3.5 0 0 0-2-3.2M5 19a2 2 0 1 0 2-2 2 2 0 0 0-2 2zm12-13a2.5 2.5 0 1 0 .1 0"
+        d="M11 6.5c.7 3.9 2.1 5.3 6 6-3.9.7-5.3 2.1-6 6-.7-3.9-2.1-5.3-6-6 3.9-.7 5.3-2.1 6-6z"
         stroke="currentColor"
         strokeWidth="1.8"
-        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      <path d="M18.5 12.5l.9 1.9 1.9.9-1.9.9-.9 1.9-.9-1.9-1.9-.9 1.9-.9.9-1.9z" fill="currentColor" />
+      <path d="M18.5 4v4.2M16.4 6.1h4.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="6" cy="18.8" r="1.6" fill="currentColor" />
     </svg>
   )
 }

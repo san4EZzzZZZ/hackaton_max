@@ -59,30 +59,32 @@ export default function RouteResultScreen({ route, onEdit, onRestart }) {
         <h1 className={styles.headerTitle}>{route.title}</h1>
       </header>
 
-      <div className={styles.summary}>
-        <div className={styles.stat}>
-          <span className={styles.statValue}>{formatMinutes(totalMinutes)}</span>
-          <span className={styles.statLabel}>в пути</span>
+      <div className="screen__body">
+        <div className={styles.summary}>
+          <div className={styles.stat}>
+            <span className={styles.statValue}>{formatMinutes(totalMinutes)}</span>
+            <span className={styles.statLabel}>в пути</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={styles.statValue}>{route.stops.length}</span>
+            <span className={styles.statLabel}>точек</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={styles.statValue}>{formatPrice(route.total_cost)}</span>
+            <span className={styles.statLabel}>бюджет</span>
+          </div>
         </div>
-        <div className={styles.stat}>
-          <span className={styles.statValue}>{route.stops.length}</span>
-          <span className={styles.statLabel}>точек</span>
-        </div>
-        <div className={styles.stat}>
-          <span className={styles.statValue}>{formatPrice(route.total_cost)}</span>
-          <span className={styles.statLabel}>бюджет</span>
-        </div>
-      </div>
 
-      {route.stops.length === 0 ? (
-        <p className={styles.empty}>Маршрут пуст — попробуйте изменить время или интересы.</p>
-      ) : (
-        <ol className={styles.stops}>
-          {route.stops.map((stop, index) => (
-            <StopCard key={stop.place.id} stop={stop} index={index} />
-          ))}
-        </ol>
-      )}
+        {route.stops.length === 0 ? (
+          <p className={styles.empty}>Маршрут пуст — попробуйте изменить время или интересы.</p>
+        ) : (
+          <ol className={styles.stops}>
+            {route.stops.map((stop, index) => (
+              <StopCard key={stop.place.id} stop={stop} index={index} />
+            ))}
+          </ol>
+        )}
+      </div>
 
       <div className={styles.footer}>
         <PrimaryButton onClick={onRestart}>Хочу новую прогулку</PrimaryButton>

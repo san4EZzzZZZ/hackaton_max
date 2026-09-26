@@ -140,7 +140,8 @@
 }
 
 .footer {
-  margin-top: auto;
-  padding-top: 28px;
+  flex: none;
+  padding-top: 20px;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
   width: 100%;
 }
