@@ -11,7 +11,8 @@
     "price": 0,
     "working_hours": "круглосуточно",
     "rating": 4.7,
-    "visit_duration_minutes": 45
+    "visit_duration_minutes": 45,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Rostov-on-Don%2C_Theatre_Square%2C_Russia.jpg/960px-Rostov-on-Don%2C_Theatre_Square%2C_Russia.jpg"
   },
   {
     "id": "drama-theatre",
@@ -25,7 +26,8 @@
     "price": 1200,
     "working_hours": "касса 11:00–19:00, спектакли вечером",
     "rating": 4.8,
-    "visit_duration_minutes": 150
+    "visit_duration_minutes": 150,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Rostov-on-Don%2C_Theatre_Square%2C_Drama_Theatre%2C_Russia.jpg/960px-Rostov-on-Don%2C_Theatre_Square%2C_Drama_Theatre%2C_Russia.jpg"
   },
   {
     "id": "pokrov-church",
@@ -39,7 +41,8 @@
     "price": 0,
     "working_hours": "07:00–19:00",
     "rating": 4.7,
-    "visit_duration_minutes": 45
+    "visit_duration_minutes": 45,
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Church_of_the_Intercession%2C_Rostov-on-Don.jpg"
   },
   {
     "id": "puppet-theatre",
@@ -53,7 +56,8 @@
     "price": 600,
     "working_hours": "касса 11:00–18:00",
     "rating": 4.7,
-    "visit_duration_minutes": 90
+    "visit_duration_minutes": 90,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9_%D0%93%D0%BE%D1%81%D1%83%D0%B4%D0%B0%D1%80%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D1%8B%D0%B9_%D0%A2%D0%B5%D0%B0%D1%82%D1%80_%D0%9A%D1%83%D0%BA%D0%BE%D0%BB_%D0%B8%D0%BC._%D0%92.%D0%A1._%D0%91%D1%8B%D0%BB%D0%BA%D0%BE%D0%B2%D0%B0%2C_%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83.jpg/960px-%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9_%D0%93%D0%BE%D1%81%D1%83%D0%B4%D0%B0%D1%80%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D1%8B%D0%B9_%D0%A2%D0%B5%D0%B0%D1%82%D1%80_%D0%9A%D1%83%D0%BA%D0%BE%D0%BB_%D0%B8%D0%BC._%D0%92.%D0%A1._%D0%91%D1%8B%D0%BB%D0%BA%D0%BE%D0%B2%D0%B0%2C_%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83.jpg"
   },
   {
     "id": "art-museum",
@@ -67,7 +71,8 @@
     "price": 300,
     "working_hours": "11:00–18:00, выходной — понедельник",
     "rating": 4.6,
-    "visit_duration_minutes": 90
+    "visit_duration_minutes": 90,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/%D0%9E%D1%81%D0%BE%D0%B1%D0%BD%D1%8F%D0%BA_%D0%94%D0%BE%D0%BC%D0%B1%D1%80%D0%BE%D0%B2%D1%81%D0%BA%D0%BE%D0%B3%D0%BE_-_%D0%BC%D1%83%D0%B7%D0%B5%D0%B9_%D0%98%D0%B7%D0%BE%D0%B1%D1%80%D0%B0%D0%B7%D0%B8%D1%82%D0%B5%D0%BB%D1%8C%D0%BD%D1%8B%D1%85_%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2.JPG/960px-%D0%9E%D1%81%D0%BE%D0%B1%D0%BD%D1%8F%D0%BA_%D0%94%D0%BE%D0%BC%D0%B1%D1%80%D0%BE%D0%B2%D1%81%D0%BA%D0%BE%D0%B3%D0%BE_-_%D0%BC%D1%83%D0%B7%D0%B5%D0%B9_%D0%98%D0%B7%D0%BE%D0%B1%D1%80%D0%B0%D0%B7%D0%B8%D1%82%D0%B5%D0%BB%D1%8C%D0%BD%D1%8B%D1%85_%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2.JPG"
   },
   {
     "id": "chernov-house",
@@ -81,7 +86,8 @@
     "price": 0,
     "working_hours": "экстерьер, доступен круглосуточно",
     "rating": 4.5,
-    "visit_duration_minutes": 30
+    "visit_duration_minutes": 30,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/%D0%94%D0%BE%D1%85%D0%BE%D0%B4%D0%BD%D1%8B%D0%B9_%D0%B4%D0%BE%D0%BC_%D0%9A.%D0%9C.%D0%A7%D0%B5%D1%80%D0%BD%D0%BE%D0%B2%D0%B0.JPG/960px-%D0%94%D0%BE%D1%85%D0%BE%D0%B4%D0%BD%D1%8B%D0%B9_%D0%B4%D0%BE%D0%BC_%D0%9A.%D0%9C.%D0%A7%D0%B5%D1%80%D0%BD%D0%BE%D0%B2%D0%B0.JPG"
   },
   {
     "id": "local-history-museum",
@@ -95,7 +101,8 @@
     "price": 300,
     "working_hours": "10:00–18:00, выходной — понедельник",
     "rating": 4.6,
-    "visit_duration_minutes": 90
+    "visit_duration_minutes": 90,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/Rostov_regional_museum_of_study_of_local_lore.jpg/960px-Rostov_regional_museum_of_study_of_local_lore.jpg"
   },
   {
     "id": "nativity-cathedral",
@@ -109,7 +116,8 @@
     "price": 0,
     "working_hours": "07:00–19:00",
     "rating": 4.8,
-    "visit_duration_minutes": 45
+    "visit_duration_minutes": 45,
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/5/5f/%D0%A1%D0%BE%D0%B1%D0%BE%D1%80_%D0%A0%D0%BE%D0%B6%D0%B4%D0%B5%D1%81%D1%82%D0%B2%D0%B0_%D0%9F%D1%80%D0%B5%D1%81%D0%B2%D1%8F%D1%82%D0%BE%D0%B9_%D0%91%D0%BE%D0%B3%D0%BE%D1%80%D0%BE%D0%B4%D0%B8%D1%86%D1%8B_%28%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83%29.jpg"
   },
   {
     "id": "circus",
@@ -123,7 +131,8 @@
     "price": 900,
     "working_hours": "по расписанию представлений",
     "rating": 4.6,
-    "visit_duration_minutes": 120
+    "visit_duration_minutes": 120,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9_%D0%B3%D0%BE%D1%81%D1%83%D0%B4%D0%B0%D1%80%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D1%8B%D0%B9_%D1%86%D0%B8%D1%80%D0%BA.jpg/960px-%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9_%D0%B3%D0%BE%D1%81%D1%83%D0%B4%D0%B0%D1%80%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D1%8B%D0%B9_%D1%86%D0%B8%D1%80%D0%BA.jpg"
   },
   {
     "id": "revolution-park",
@@ -137,7 +146,8 @@
     "price": 0,
     "working_hours": "круглосуточно",
     "rating": 4.4,
-    "visit_duration_minutes": 90
+    "visit_duration_minutes": 90,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/October_Park_of_Culture_and_Leisure_%28Rostov-on-Don%29_01.jpg/960px-October_Park_of_Culture_and_Leisure_%28Rostov-on-Don%29_01.jpg"
   },
   {
     "id": "chevereichkin-park",
@@ -151,7 +161,8 @@
     "price": 0,
     "working_hours": "круглосуточно",
     "rating": 4.4,
-    "visit_duration_minutes": 60
+    "visit_duration_minutes": 60,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/%D0%A0%D0%9D%D0%94-%D0%9F%D0%B0%D1%80%D0%BA_%D0%B8%D0%BC%D0%B5%D0%BD%D0%B8_%D0%92%D0%B8%D0%BA%D1%82%D0%BE%D1%80%D0%B0_%D0%A7%D0%B5%D1%80%D0%B5%D0%B2%D0%B8%D1%87%D0%BA%D0%B8%D0%BD%D0%B0.jpg/960px-%D0%A0%D0%9D%D0%94-%D0%9F%D0%B0%D1%80%D0%BA_%D0%B8%D0%BC%D0%B5%D0%BD%D0%B8_%D0%92%D0%B8%D0%BA%D1%82%D0%BE%D1%80%D0%B0_%D0%A7%D0%B5%D1%80%D0%B5%D0%B2%D0%B8%D1%87%D0%BA%D0%B8%D0%BD%D0%B0.jpg"
   },
   {
     "id": "youth-theatre",
@@ -165,7 +176,8 @@
     "price": 700,
     "working_hours": "касса 11:00–18:00",
     "rating": 4.6,
-    "visit_duration_minutes": 120
+    "visit_duration_minutes": 120,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/TYUZ_Rostov.jpg/960px-TYUZ_Rostov.jpg"
   },
   {
     "id": "sobino-park",
@@ -179,7 +191,8 @@
     "price": 0,
     "working_hours": "круглосуточно",
     "rating": 4.5,
-    "visit_duration_minutes": 90
+    "visit_duration_minutes": 90,
+    "image_url": null
   },
   {
     "id": "botanic-garden",
@@ -193,7 +206,8 @@
     "price": 200,
     "working_hours": "10:00–17:00, выходной — понедельник",
     "rating": 4.5,
-    "visit_duration_minutes": 90
+    "visit_duration_minutes": 90,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/%D0%9A%D0%BE%D0%B2%D0%B0%D0%BB%D1%8C_%D0%B2_%D0%BF%D0%BE%D0%BB%D0%B5_%D0%91%D0%BE%D1%82%D0%B0%D0%BD%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9_%D1%81%D0%B0%D0%B4_%D0%AE%D0%A4%D0%A3_%D0%B3._%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83.jpg/960px-%D0%9A%D0%BE%D0%B2%D0%B0%D0%BB%D1%8C_%D0%B2_%D0%BF%D0%BE%D0%BB%D0%B5_%D0%91%D0%BE%D1%82%D0%B0%D0%BD%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9_%D1%81%D0%B0%D0%B4_%D0%AE%D0%A4%D0%A3_%D0%B3._%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83.jpg"
   },
   {
     "id": "zmiyovskaya-balka",
@@ -207,7 +221,8 @@
     "price": 0,
     "working_hours": "круглосуточно",
     "rating": 4.7,
-    "visit_duration_minutes": 60
+    "visit_duration_minutes": 60,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ec/Zmievskaya_Balka_Memorial_Complex.jpg/960px-Zmievskaya_Balka_Memorial_Complex.jpg"
   },
   {
     "id": "rostov-zoo",
@@ -221,7 +236,8 @@
     "price": 500,
     "working_hours": "09:00–18:00",
     "rating": 4.5,
-    "visit_duration_minutes": 150
+    "visit_duration_minutes": 150,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9_%D0%B7%D0%BE%D0%BE%D0%BF%D0%B0%D1%80%D0%BA.jpg/960px-%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9_%D0%B7%D0%BE%D0%BE%D0%BF%D0%B0%D1%80%D0%BA.jpg"
   },
   {
     "id": "gorky-park",
@@ -235,7 +251,8 @@
     "price": 0,
     "working_hours": "круглосуточно",
     "rating": 4.6,
-    "visit_duration_minutes": 60
+    "visit_duration_minutes": 60,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/%D0%9F%D0%B0%D1%80%D0%BA_%D0%93%D0%BE%D1%80%D1%8C%D0%BA%D0%BE%D0%B3%D0%BE_%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83.jpg/960px-%D0%9F%D0%B0%D1%80%D0%BA_%D0%93%D0%BE%D1%80%D1%8C%D0%BA%D0%BE%D0%B3%D0%BE_%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83.jpg"
   },
   {
     "id": "bolshaya-sadovaya-street",
@@ -249,6 +266,7 @@
     "price": 0,
     "working_hours": "круглосуточно",
     "rating": 4.7,
-    "visit_duration_minutes": 60
+    "visit_duration_minutes": 60,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c5/%D0%91%D0%BE%D0%BB%D1%8C%D1%88%D0%B0%D1%8F_%D0%A1%D0%B0%D0%B4%D0%BE%D0%B2%D0%B0%D1%8F_%D1%83%D0%BB%D0%B8%D1%86%D0%B0%2C_%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83.jpg/960px-%D0%91%D0%BE%D0%BB%D1%8C%D1%88%D0%B0%D1%8F_%D0%A1%D0%B0%D0%B4%D0%BE%D0%B2%D0%B0%D1%8F_%D1%83%D0%BB%D0%B8%D1%86%D0%B0%2C_%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83.jpg"
   }
 ]
