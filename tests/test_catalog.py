@@ -51,7 +51,23 @@ def test_load_places_returns_validated_models(places: list[dict]) -> None:
     assert len(loaded) == len(places) > 0
     assert {type(item) for item in loaded} == {Place}
     assert len({item.id for item in loaded}) == len(loaded), "place ids must be unique"
-    assert all(item.rating <= 5 and item.visit_duration_minutes >= 15 for item in loaded)
+    assert all(item.rating <= 5 for item in loaded)
+
+
+def test_a_visit_is_long_enough_to_be_a_visit_and_short_enough_to_be_walked(places: list[dict]) -> None:
+    """20 minutes is the floor the route builder is planned around, not a schema minimum (that is 15).
+
+    Below it a "visit" is a photo stop, and `test_constraints_that_leave_nothing_behind_answer_404`
+    stops being a 404 — that test asks for a quarter of an hour and expects nothing to fit.
+    """
+    durations = [place["visit_duration_minutes"] for place in places]
+    assert min(durations) >= 20
+    # A route is supposed to hold several objects: one that eats half a day on its own is a destination,
+    # not a stop, and it is why the old catalog could only ever offer two points.
+    assert max(durations) <= 150
+    assert sum(durations) / len(durations) <= 75, (
+        "послеобеденная прогулка должна вмещать больше одной точки"
+    )
 
 
 def test_image_links_are_commons_thumbnails_or_a_deliberate_null() -> None:

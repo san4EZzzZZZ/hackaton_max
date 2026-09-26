@@ -41,6 +41,27 @@ def test_a_saved_route_comes_back_as_the_answer_it_was_saved_from(client: TestCl
     assert fetched.json()["route"] == route, "the payload is the generator's answer, verbatim"
 
 
+def test_a_route_saved_before_the_aggregates_existed_is_still_readable(client: TestClient) -> None:
+    """`total_duration_minutes` is derived from the stops, so a payload predating it cannot 422.
+
+    Routes stored before the generator reported the aggregates are still exactly what their stops
+    describe — the fields rebuild themselves instead of freezing at zero.
+    """
+    route = generated(client)
+    for key in ("total_duration_minutes", "total_distance_m", "slack_minutes"):
+        route.pop(key)
+    for stop in route["stops"]:
+        stop.pop("distance_m_from_prev")
+
+    stored = save(client, route)
+    assert stored["route"]["total_duration_minutes"] == sum(
+        stop["travel_minutes_from_prev"] + stop["visit_duration_minutes"] for stop in route["stops"]
+    )
+    # A distance the old payload never carried cannot be rebuilt from it: it reports zero rather than a
+    # number nobody measured, and re-saving the same route after a generate call gives the real one.
+    assert stored["route"]["total_distance_m"] == 0
+
+
 def test_the_row_survives_a_restart(client: TestClient) -> None:
     """The point of the whole endpoint: an in-memory store would pass every other test here and fail."""
     with app_client() as first:

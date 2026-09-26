@@ -801,6 +801,26 @@ components:
           minimum: 0.0
           title: Total Duration Hours
           description: Визиты и переходы между точками
+        total_duration_minutes:
+          type: integer
+          minimum: 0.0
+          title: Total Duration Minutes
+          description: То же число в минутах, без округления до сотых часа
+          default: 0
+        total_distance_m:
+          type: integer
+          minimum: 0.0
+          title: Total Distance M
+          description: Сумма прямых расстояний между соседними точками, м
+          default: 0
+        slack_minutes:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Slack Minutes
+          description: 'Незанятые минуты из заказанной длительности. Запас не резервируется:
+            маршрут плотный, но эти минуты уходят на темп прогулки и случайные остановки'
         total_cost:
           type: number
           minimum: 0.0
@@ -849,7 +869,17 @@ components:
           type: integer
           minimum: 0.0
           title: Travel Minutes From Prev
-          description: Переход от предыдущей точки, мин.
+          description: 'Переход от предыдущей точки, мин. Оценка планировщика (пеший
+            ход плюс запас на ожидание), а не ETA навигатора: путь по тротуарам всегда
+            дольше'
+          default: 0
+        distance_m_from_prev:
+          type: integer
+          minimum: 0.0
+          title: Distance M From Prev
+          description: Расстояние от предыдущей точки по прямой, м; у первой точки
+            0. Длина тротуарного обхода всегда больше, поэтому подпись «N км пешком»
+            честнее читать «N км напрямую»
           default: 0
       type: object
       required:
@@ -875,6 +905,26 @@ components:
           minimum: 0.0
           title: Total Duration Hours
           description: Визиты и переходы между точками
+        total_duration_minutes:
+          type: integer
+          minimum: 0.0
+          title: Total Duration Minutes
+          description: То же число в минутах, без округления до сотых часа
+          default: 0
+        total_distance_m:
+          type: integer
+          minimum: 0.0
+          title: Total Distance M
+          description: Сумма прямых расстояний между соседними точками, м
+          default: 0
+        slack_minutes:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Slack Minutes
+          description: 'Незанятые минуты из заказанной длительности. Запас не резервируется:
+            маршрут плотный, но эти минуты уходят на темп прогулки и случайные остановки'
         total_cost:
           type: number
           minimum: 0.0

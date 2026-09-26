@@ -18,7 +18,8 @@ bot/handlers/start.py приветствие, фолбэк на любой те�
 server/database.py    AsyncEngine + aiosqlite, PRAGMA WAL/synchronous/foreign_keys, модели User и SavedRoute
 server/schemas.py     публичные контракты: Place / RouteRequest / RouteResponse / SaveRouteRequest + описания для OpenAPI
 server/catalog.py     загрузка data/places.json (кэш), нестрогое сравнение города, список категорий
-server/routing.py     сборка маршрута: отбор по рейтингу на минуту затрат + 2-opt порядок переходов
+server/routing.py     сборка маршрута: лучевой поиск самого плотного набора точек под бюджет времени и
+                      денег, затем 2-opt порядок переходов и вставка того, что влезло в образовавшиеся окна
 server/routers/       /api/v1: places, categories, routes/generate, routes (сохранённые маршруты)
 server/cors.py        CORS для браузерных запросов Mini App (CORS_ALLOW_ORIGINS)
 server/app.py         FastAPI: lifespan, POST /webhook, /health
@@ -210,6 +211,13 @@ CI (`.github/workflows/ci.yml`) на каждом PR прогоняет тест
   `POST /routes/generate` — `404`, потому что маршрута не существует.
 - Бюджет в `/routes/generate` ограничивает **суммарную** стоимость маршрута и принимается под именем
   `max_budget` или `budget`.
+- Переходы считаются по **пешеходному** темпу: `travel_minutes_from_prev` — это 4,8 км/ч плюс три минуты
+  запаса на выход из здания, а `distance_m_from_prev` — расстояние от предыдущей точки **по прямой**, не
+  длина обхода по тротуарам. Если карта посчитает путь сама, её ETA будет больше наших минут: это не
+  расхождение, а два разных вопроса — «сколько планируем мы» и «сколько идёт навигатор».
+- `total_duration_minutes` и `total_distance_m` — суммы, которые клиент мог бы сложить из `stops` сам, но
+  не должен; `slack_minutes` — сколько минут заказанного времени осталось незанятым. Запас сообщается, но
+  специально не резервируется: плотная прогулка и так оставляет 17–38 минут из четырёх часов.
 - Неизвестное поле в теле запроса — `422` со списком ошибок, а не молчаливое игнорирование: проглоченный
   `budget` неотличим от проигнорированного лимита.
 - `q` ищет подстрокой по `title`, `description`, `address` и `category`: регистр, пунктуация и лишние
