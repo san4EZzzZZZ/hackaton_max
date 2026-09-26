@@ -283,10 +283,10 @@ def test_more_time_never_means_a_shorter_walk(categories: list[str]) -> None:
 
 
 def test_the_requests_the_mini_app_opens_with_are_measured_in_stops() -> None:
-    # The old engine gave 1 / 2 / 3 / 2 here. One hour is still a single stop and that is geography,
-    # not the search: the two nearest objects are a 13-minute walk apart, so 25 + 13 + 25 = 63 minutes
-    # does not fit in 60. It stops being true when the center fills up (#32), not before.
-    for hours, floor in ((1.0, 1), (2.0, 3), (3.0, 4), (4.0, 6)):
+    # The old engine gave 1 / 2 / 3 / 2 here, and one hour was a single stop because of geography:
+    # the two nearest objects were a 13-minute walk apart, so 25 + 13 + 25 = 63 minutes does not fit
+    # in 60. Filling the center (#32) is what made an hour worth two places instead of one.
+    for hours, floor in ((1.0, 2), (2.0, 3), (3.0, 4), (4.0, 6)):
         stops, minutes, _cost = walk(hours)
         assert len(stops) >= floor, f"{hours} h assembled only {len(stops)} stops ({minutes} min occupied)"
 

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import re
+from collections import Counter
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -19,9 +21,20 @@ from server.catalog import (
     load_places,
     search_matches,
 )
+from server.routing import haversine_km
 from server.schemas import Location, Place
 
 CATALOG_CITY = "Ростов-на-Дону"
+
+
+def raw_catalog() -> list[dict]:
+    """The seed file as written, keys and all.
+
+    Read here rather than through `load_places` on purpose: the models drop what they do not declare,
+    so provenance notes and the difference between an absent key and a deliberate `null` are visible
+    only in the file itself.
+    """
+    return json.loads(catalog_module.DATA_FILE.read_text(encoding="utf-8"))
 
 
 @pytest.mark.parametrize(
@@ -70,11 +83,60 @@ def test_a_visit_is_long_enough_to_be_a_visit_and_short_enough_to_be_walked(plac
     )
 
 
+def test_no_category_offers_less_than_a_pair() -> None:
+    """The setup screen draws one chip per category, so a category with a single object is a dead end.
+
+    #32 brought the second gallery and the second museum; before it «Галерея» and «Музей» each answered
+    every request with exactly one stop, whatever the hours asked for.
+    """
+    counts = Counter(place["category"] for place in raw_catalog())
+    assert min(counts.values()) >= 2, f"одиночная категория в каталоге: {counts}"
+
+
+def test_the_center_is_dense_enough_for_an_hour_of_walking() -> None:
+    """An hour fits two stops only if short visits actually sit next to each other.
+
+    This is the data half of «1 час даёт ≥ 2 точки»; the engine half lives in
+    `test_the_requests_the_mini_app_opens_with_are_measured_in_stops`. Half a kilometre is the stretch
+    of street an hour of walking spends, and a visit of 25 minutes is what leaves room for the walk
+    between two of them.
+    """
+    places = raw_catalog()
+    center = next(p for p in places if p["id"] == "theatre-square")["location"]
+    near = [
+        p
+        for p in places
+        if p["id"] != "theatre-square"
+        and haversine_km(Location(**center), Location(**p["location"])) <= 0.5
+    ]
+    assert len(near) >= 8, f"вокруг Театральной площади осталось только {len(near)} объекта"
+    assert sum(1 for p in near if p["visit_duration_minutes"] <= 25) >= 3, (
+        "рядом нет коротких остановок — час не вмещает две точки"
+    )
+
+
+def test_a_provenance_note_names_a_wikidata_item_and_admits_what_was_not_checked() -> None:
+    """Coordinates come out of Wikidata statements, never out of a guess, so the file says which.
+
+    `provenance` is invisible to the API (`Place` ignores what it does not declare): it is the reviewer's
+    trail. A place may carry an unverified price or rating while it waits for a source, but never an
+    unverified location — the order of a walk depends on it.
+    """
+    noted = [place for place in raw_catalog() if "provenance" in place]
+    assert noted, "новые места обязаны оставлять след источника"
+    for place in noted:
+        provenance = place["provenance"]
+        assert re.fullmatch(r"https://www\.wikidata\.org/wiki/Q\d+", provenance["source_url"])
+        assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", provenance["last_verified"])
+        unverified = set(provenance["unverified_fields"])
+        assert unverified <= set(place), "в непроверенном списке нет такого поля записи"
+        assert {"location", "id", "category"}.isdisjoint(unverified), (
+            "координаты, id и категория сверяются всегда"
+        )
+
+
 def test_image_links_are_commons_thumbnails_or_a_deliberate_null() -> None:
-    # The seed file is read here rather than the loaded models on purpose: a model fills in
-    # `image_url = None` for a record that never mentioned the key, which is the exact difference this
-    # test has to see. An absent key and a "we looked, nothing suitable" null must not collide.
-    raw = json.loads(catalog_module.DATA_FILE.read_text(encoding="utf-8"))
+    raw = raw_catalog()
     assert all("image_url" in record for record in raw)
     filled = [record["image_url"] for record in raw if record["image_url"]]
     assert len(filled) >= len(raw) - 2, "the demo catalog is meant to be mostly illustrated"
@@ -111,7 +173,7 @@ def test_an_empty_seed_file_loads_as_an_empty_catalog(tmp_path: Path, monkeypatc
 
 
 def test_the_seed_file_itself_is_the_documented_shape() -> None:
-    raw = json.loads(catalog_module.DATA_FILE.read_text(encoding="utf-8"))
+    raw = raw_catalog()
     assert isinstance(raw, list) and raw
     assert {"id", "title", "category", "location", "city"} <= set(raw[0])
 
