@@ -49,12 +49,31 @@ button {
 }
 
 .screen {
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: calc(env(safe-area-inset-top) + 20px) 24px
-    calc(env(safe-area-inset-bottom) + 20px);
+  width: 100%;
+  max-width: 480px;
+  margin-inline: auto;
+  padding: calc(env(safe-area-inset-top) + 20px) 24px 0;
+  overflow: hidden;
   animation: screen-in 0.32s ease both;
+}
+
+/* Scrollable middle: only this area moves, header/footer stay pinned. */
+.screen__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 12px;
+  scrollbar-width: none;
+}
+
+.screen__body::-webkit-scrollbar {
+  display: none;
 }
 
 @keyframes screen-in {

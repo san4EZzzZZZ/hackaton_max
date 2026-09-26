@@ -193,7 +193,8 @@
 }
 
 .footer {
-  margin-top: auto;
-  padding-top: 24px;
+  flex: none;
+  padding-top: 16px;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
   width: 100%;
 }

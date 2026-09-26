@@ -102,8 +102,9 @@
 }
 
 .footer {
-  margin-top: auto;
-  padding-top: 32px;
+  flex: none;
+  padding-top: 20px;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
   width: 100%;
   animation: rise-in 0.5s ease 0.44s both;
 }
