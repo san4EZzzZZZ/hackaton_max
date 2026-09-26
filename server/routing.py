@@ -1,15 +1,18 @@
-"""Route assembly: greedy selection under time and budget, ordered by real distance.
+"""Route assembly: the densest walk that fits, then the shortest order for it.
 
-Two phases. Selection walks the catalog with a nearest-neighbour heuristic: it starts at the
-best-rated object and repeatedly appends the candidate with the highest rating per minute spent,
-where the cost of a candidate is the transfer time from the previous stop plus its own visit
-duration. Ordering then applies 2-opt reversals to shorten the chain of transfers.
-Everything is deterministic (stable tie-breaks) so the same request always yields the same route.
+Two phases. Selection searches for the largest set of objects that fits the time and money budget;
+ordering then applies 2-opt reversals to shorten the chain of transfers between them. Everything is
+deterministic (stable tie-breaks) so the same request always yields the same route.
+
+Selection is a beam search rather than a greedy step because a greedy step cannot see ahead: on the
+real catalog it spent 150 of 240 minutes on one theatre and returned a 4-hour route with fewer stops
+than the 3-hour route for the same categories.
 """
 
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from server.catalog import city_matches
@@ -17,12 +20,17 @@ from server.schemas import Location, Place, RouteRequest, RouteStop
 
 EARTH_RADIUS_KM = 6371.0
 
-# Effective door-to-door city speed, including waiting for transport.
-TRANSIT_KMH = 20.0
-FIXED_TRANSFER_MINUTES = 6.0
+# Walking speed plus a fixed allowance for leaving a building and finding the next pavement.
+TRANSIT_KMH = 4.8
+FIXED_TRANSFER_MINUTES = 3.0
 
-# A 10-minute transfer costs the same as 0.1 rating points: proximity matters, content matters more.
-TRAVEL_RATING_PENALTY_PER_MINUTE = 0.01
+# Selection is exponential in the number of stops, so it is explored as a beam: a few promising
+# starting objects, each keeping its `BEAM_WIDTH` best partial routes per extension step. The cap bounds
+# the search, not the route — `_fill_gaps` keeps growing it afterwards, and on a twelve-hour day that is
+# the difference between twelve stops and thirteen.
+START_VARIANTS = 4
+BEAM_WIDTH = 12
+MAX_SEARCH_STOPS = 12
 
 
 def haversine_km(origin: Location, target: Location) -> float:
@@ -85,6 +93,106 @@ def _edge_minutes(origin: Place, target: Place) -> int:
     return travel_minutes(origin.location, target.location)
 
 
+def _chain_minutes(route: Sequence[Place]) -> int:
+    """Visits plus transfers, in the given order."""
+    visits = sum(place.visit_duration_minutes for place in route)
+    transfers = sum(_edge_minutes(route[i], route[i + 1]) for i in range(len(route) - 1))
+    return visits + transfers
+
+
+def _cost(route: Sequence[Place]) -> float:
+    return sum(place.price for place in route)
+
+
+def _step_key(route: Sequence[Place]) -> tuple[int, int, float, tuple[str, ...]]:
+    """Which partial route survives the beam, sorted ascending: more stops, then more leftover time.
+
+    Stop count has to outrank rating here. Pruning by rating sum reintroduces the exact failure the
+    search replaces: the promising-looking long stop wins the slot, and a longer request returns
+    fewer places than a shorter one.
+    """
+    return (-len(route), _chain_minutes(route), -sum(p.rating for p in route), tuple(p.id for p in route))
+
+
+def _final_key(route: Sequence[Place]) -> tuple[int, float, int, tuple[str, ...]]:
+    """Which complete route is returned: most stops, then best rated, then least time spent.
+
+    The trailing id tuple is what makes 'the same request always gives the same route' a property of
+    the sort rather than of float arithmetic landing in a lucky order.
+    """
+    return (
+        -len(route),
+        -sum(place.rating for place in route),
+        _chain_minutes(route),
+        tuple(sorted(place.id for place in route)),
+    )
+
+
+def _search(pool: list[Place], time_budget: int, budget: float | None) -> list[Place]:
+    """Beam search over append-only chains of places that fit the budget."""
+    # Sorting before the search keeps the rating sums — and therefore the tie-breaks — independent of
+    # the order the records happen to sit in inside data/places.json.
+    pool = sorted(pool, key=lambda place: (-place.rating, place.price, place.id))
+    states = [
+        [place]
+        for place in pool[:START_VARIANTS]
+        if _chain_minutes([place]) <= time_budget and (budget is None or _cost([place]) <= budget)
+    ]
+    complete = list(states)
+
+    while states and len(states[0]) < MAX_SEARCH_STOPS:
+        extended: list[list[Place]] = []
+        for route in states:
+            visited = {place.id for place in route}
+            for candidate in pool:
+                if candidate.id in visited:
+                    continue
+                option = [*route, candidate]
+                if _chain_minutes(option) > time_budget:
+                    continue
+                if budget is not None and _cost(option) > budget:
+                    continue
+                extended.append(option)
+        if not extended:
+            break
+        extended.sort(key=_step_key)
+        states = extended[:BEAM_WIDTH]
+        complete.extend(states)
+
+    return min(complete, key=_final_key) if complete else []
+
+
+def _fill_gaps(
+    route: list[Place], leftovers: list[Place], time_budget: int, budget: float | None
+) -> tuple[list[Place], list[Place]]:
+    """Drop the best remaining place into the earliest gap it fits, until nothing fits anywhere.
+
+    Position 0 is never a candidate: the place the search chose to start from is part of its answer,
+    and moving it would let the fill pass undo the one decision the ordering phase is not allowed to
+    revisit.
+    """
+    route = list(route)
+    remaining = list(leftovers)
+    while True:
+        options = [
+            (-place.rating, index, place)
+            for place in remaining
+            for index in range(1, len(route) + 1)
+            if _fits([*route[:index], place, *route[index:]], time_budget, budget)
+        ]
+        if not options:
+            return route, remaining
+        _, index, place = min(options, key=lambda option: (option[0], option[1], option[2].id))
+        route = [*route[:index], place, *route[index:]]
+        remaining.remove(place)
+
+
+def _fits(route: Sequence[Place], time_budget: int, budget: float | None) -> bool:
+    if _chain_minutes(route) > time_budget:
+        return False
+    return budget is None or _cost(route) <= budget
+
+
 def optimize_order(places: list[Place]) -> list[Place]:
     """Shorten the transfer chain with 2-opt segment reversals.
 
@@ -112,11 +220,16 @@ def optimize_order(places: list[Place]) -> list[Place]:
 
 
 def _timeline(places: list[Place]) -> tuple[list[RouteStop], int]:
-    """Number the stops and derive arrival offsets and transfer times from the order."""
+    """Number the stops and derive arrival offsets, transfer times and distances from the order."""
     stops: list[RouteStop] = []
     elapsed = 0
     for index, place in enumerate(places):
-        travel = 0 if index == 0 else _edge_minutes(places[index - 1], place)
+        if index == 0:
+            travel = 0
+            distance_m = 0
+        else:
+            travel = _edge_minutes(places[index - 1], place)
+            distance_m = round(haversine_km(places[index - 1].location, place.location) * 1000)
         elapsed += travel
         stops.append(
             RouteStop(
@@ -125,6 +238,7 @@ def _timeline(places: list[Place]) -> tuple[list[RouteStop], int]:
                 arrival_offset_minutes=elapsed,
                 visit_duration_minutes=place.visit_duration_minutes,
                 travel_minutes_from_prev=travel,
+                distance_m_from_prev=distance_m,
             )
         )
         elapsed += place.visit_duration_minutes
@@ -138,39 +252,21 @@ def assemble_route(
     time_budget = int(request.duration_hours * 60)
     budget = request.max_budget
 
-    remaining = {candidate.place.id: candidate for candidate in candidates}
-    if not remaining:
+    pool = [candidate.place for candidate in candidates]
+    if not pool:
         return [], 0, 0.0
 
-    current = min(remaining.values(), key=lambda candidate: candidate.sort_key)
-    del remaining[current.place.id]
-    chosen: list[Place] = [current.place]
-    elapsed = current.place.visit_duration_minutes
-    cost = current.place.price
+    route = _search(pool, time_budget, budget)
+    leftovers = [place for place in pool if place.id not in {stop.id for stop in route}]
 
-    while remaining and elapsed < time_budget:
-        best_key: tuple[float, float, str] | None = None
-        best_candidate: _Candidate | None = None
-        best_travel = 0
-        for candidate in remaining.values():
-            travel = travel_minutes(chosen[-1].location, candidate.place.location)
-            total = travel + candidate.place.visit_duration_minutes
-            if elapsed + total > time_budget:
-                continue
-            if budget is not None and cost + candidate.place.price > budget:
-                continue
-            value = candidate.rating - travel * TRAVEL_RATING_PENALTY_PER_MINUTE
-            key = (-value, candidate.place.price, candidate.place.id)
-            if best_key is None or key < best_key:
-                best_key, best_candidate, best_travel = key, candidate, travel
-        if best_candidate is None:
+    # Shortening the chain is what opens the gaps the fill pass needs, and filling is what gives the
+    # next shortening something to work with, so the two run until the set stops growing.
+    while True:
+        route = optimize_order(route)
+        filled, leftovers = _fill_gaps(route, leftovers, time_budget, budget)
+        if len(filled) == len(route):
             break
+        route = filled
 
-        selected = best_candidate
-        del remaining[selected.place.id]
-        elapsed += best_travel + selected.place.visit_duration_minutes
-        cost += selected.place.price
-        chosen.append(selected.place)
-
-    stops, total_minutes = _timeline(optimize_order(chosen))
-    return stops, total_minutes, cost
+    stops, total_minutes = _timeline(optimize_order(route))
+    return stops, total_minutes, _cost(route)

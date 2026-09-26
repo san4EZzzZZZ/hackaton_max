@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 
 class ApiModel(BaseModel):
@@ -111,7 +118,22 @@ class RouteStop(ApiModel):
     order: int = Field(..., ge=1, description="Позиция точки в маршруте")
     arrival_offset_minutes: int = Field(..., ge=0, description="Момент прибытия от начала, мин.")
     visit_duration_minutes: int = Field(..., ge=15, description="Время на точку, мин.")
-    travel_minutes_from_prev: int = Field(0, ge=0, description="Переход от предыдущей точки, мин.")
+    travel_minutes_from_prev: int = Field(
+        0,
+        ge=0,
+        description=(
+            "Переход от предыдущей точки, мин. Оценка планировщика (пеший ход плюс запас на "
+            "ожидание), а не ETA навигатора: путь по тротуарам всегда дольше"
+        ),
+    )
+    distance_m_from_prev: int = Field(
+        0,
+        ge=0,
+        description=(
+            "Расстояние от предыдущей точки по прямой, м; у первой точки 0. Длина тротуарного обхода "
+            "всегда больше, поэтому подпись «N км пешком» честнее читать «N км напрямую»"
+        ),
+    )
 
 
 class RouteResponse(ApiModel):
@@ -119,12 +141,41 @@ class RouteResponse(ApiModel):
     title: str
     city: str
     total_duration_hours: float = Field(..., ge=0, description="Визиты и переходы между точками")
+    total_duration_minutes: int = Field(
+        0,
+        ge=0,
+        description="То же число в минутах, без округления до сотых часа",
+    )
+    total_distance_m: int = Field(
+        0,
+        ge=0,
+        description="Сумма прямых расстояний между соседними точками, м",
+    )
+    slack_minutes: int | None = Field(
+        None,
+        ge=0,
+        description=(
+            "Незанятые минуты из заказанной длительности. Запас не резервируется: маршрут плотный, "
+            "но эти минуты уходят на темп прогулки и случайные остановки"
+        ),
+    )
     total_cost: float = Field(..., ge=0, description="Суммарная стоимость посещения, руб.")
     places: list[Place] = Field(default_factory=list, description="Точки в порядке визита")
     stops: list[RouteStop] = Field(
         default_factory=list,
         description="Те же точки с таймингами переходов; пуст, если маршрут не собран",
     )
+
+    # Both aggregates are derived from `stops` rather than trusted from the caller. A route saved
+    # before these fields existed comes back through SaveRouteRequest without them, and replaying it
+    # must rebuild the numbers instead of failing validation or storing zeros.
+    @model_validator(mode="after")
+    def _recount_from_stops(self) -> "RouteResponse":
+        if self.stops:
+            last = self.stops[-1]
+            self.total_duration_minutes = last.arrival_offset_minutes + last.visit_duration_minutes
+            self.total_distance_m = sum(stop.distance_m_from_prev for stop in self.stops)
+        return self
 
 
 class SaveRouteRequest(RouteResponse):
