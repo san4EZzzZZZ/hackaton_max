@@ -155,9 +155,6 @@ export default function RouteResultScreen({ route, onEdit }) {
 
         <div className={styles.footer}>
           <PrimaryButton>Начать прогулку</PrimaryButton>
-          <p className={styles.attribution}>
-            © OpenStreetMap contributors
-          </p>
         </div>
       </div>
     </div>
