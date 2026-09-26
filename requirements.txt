@@ -1,10 +1,24 @@
-fastapi
-uvicorn[standard]
-httpx
-pydantic
-pydantic-settings
-sqlalchemy
-aiosqlite
-asyncpg
-greenlet
-certifi
+# Runtime dependencies, pinned to the set the image installs and the suite passes on.
+# Unpinned names made every rebuild depend on whatever shipped the day before — SQLAlchemy 2.1 and
+# starlette 1.7 both landed after this project started, and `docker build` had no way to notice.
+#
+# To bump a package: change its line, then resolve the graph for the interpreter the image uses
+# (python:3.12-slim is Debian, so glibc >= 2.28 => manylinux_2_28) and re-run the tests:
+#
+#   python -m pip install --dry-run --ignore-installed --only-binary=:all: \
+#     --python-version 312 --implementation cp --abi cp312 --platform manylinux_2_28_x86_64 \
+#     --target /tmp/resolution -r requirements.txt
+#
+# `greenlet` and `asyncpg` resolve per platform, so each pin below is a version that carries wheels
+# for both cp312/manylinux_2_28 (the image) and cp313/win_amd64 (a dev box).
+
+fastapi==0.141.1
+uvicorn[standard]==0.54.0
+httpx==0.28.1
+pydantic==2.13.5
+pydantic-settings==2.15.0
+sqlalchemy==2.1.1
+aiosqlite==0.22.1
+asyncpg==0.31.0
+greenlet==3.5.6
+certifi==2026.7.22
