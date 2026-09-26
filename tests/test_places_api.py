@@ -95,6 +95,10 @@ def test_categories_are_the_ones_the_data_actually_has(client: TestClient, place
         CATEGORIES,
         CITIES,
         "/api/v1/routes/generate",
+        # Both guide screens read the catalog too: the index pairs a guide with its place, and the
+        # guide answer echoes price and opening hours out of it.
+        "/api/v1/guides",
+        "/api/v1/places/theatre-square/guide",
     ],
 )
 def test_an_unreadable_catalog_reports_503_rather_than_500(tmp_path: Path, monkeypatch, path: str) -> None:

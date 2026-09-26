@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
+from typing import Annotated, Literal
+from urllib.parse import urlsplit
 
 from pydantic import (
     AliasChoices,
@@ -35,6 +37,16 @@ CATALOG_UNAVAILABLE_RESPONSE = {
 DATABASE_UNAVAILABLE_RESPONSE = {
     "model": ApiError,
     "description": "База данных не отвечает",
+}
+GUIDE_UNAVAILABLE_RESPONSE = {
+    "model": ApiError,
+    "description": "Файл справок недоступен или повреждён",
+}
+# One status code for two different mistakes, because the client's screen is the same either way;
+# the `detail` says which one it is.
+GUIDE_MISSING_RESPONSE = {
+    "model": ApiError,
+    "description": "Места с таким идентификатором нет, либо справка для него ещё не написана",
 }
 
 # SQLite stores integers in 8 bytes and raises OverflowError past this bound instead of answering, so
@@ -85,6 +97,161 @@ class CitySummary(ApiModel):
     city: str = Field(..., description="Название города")
     place_count: int = Field(..., ge=1, description="Число объектов в этом городе")
     categories: list[str] = Field(..., description="Категории этих объектов")
+
+
+# «Справка по пути»: текст пишет редактор в data/place_guides.json, всё остальное приходит из каталога.
+
+_HistoryParagraph = Annotated[
+    str,
+    Field(min_length=120, description="Абзац истории места"),
+]
+_Highlight = Annotated[
+    str,
+    Field(min_length=12, description="Короткий факт, который проверяется прямо на месте"),
+]
+
+GuideStatus = Literal["ready", "seed"]
+
+
+class GuideMedia(ApiModel):
+    """Один снимок справки. Оба адреса ведут на Wikimedia Commons — чужие хосты сервер не раздаёт."""
+
+    url: str = Field(..., description="Оригинал файла на Commons")
+    thumb_url: str = Field(..., description="Миниатюра того же файла — показывать клиенту её")
+    caption: str = Field(..., min_length=3, description="Что на снимке")
+    credit: str = Field(..., min_length=2, description="Автор, как указан на странице файла")
+    license: str = Field(..., min_length=2, description="Лицензия, например CC BY-SA 4.0")
+    license_url: str | None = Field(
+        None,
+        description="Страница лицензии; null только у public domain, где ссылки на лицензию нет",
+    )
+
+    @field_validator("url", "thumb_url")
+    @classmethod
+    def _served_by_wikimedia(cls, value: str) -> str:
+        """Rejected while the file loads, so a stray host turns into a 503 rather than a hot link.
+
+        The rule is the same one the catalog images obey: the API never points a client at a host the
+        project does not control, and it never needs an outbound request of its own to answer.
+        """
+        host = urlsplit(value).netloc.lower()
+        if not value.startswith("https://") or not (
+            host == "wikimedia.org" or host.endswith(".wikimedia.org")
+        ):
+            raise ValueError("иллюстрация обязана лежать на https://*.wikimedia.org")
+        return value
+
+    @model_validator(mode="after")
+    def _a_license_needs_a_page(self) -> "GuideMedia":
+        if self.license_url is None and not self.license.strip().lower().startswith("public domain"):
+            raise ValueError(f"{self.caption!r}: у лицензии {self.license!r} обязан быть адрес")
+        return self
+
+
+class GuideProvenance(ApiModel):
+    """Чем справка подтверждена и где именно редактор взял факты."""
+
+    source_url: str | None = Field(
+        None, description="Страница источника; без неё справка считается неподтверждённой"
+    )
+    last_verified: date | None = Field(
+        None, description="Дата, когда редактор сверил запись с источником"
+    )
+    verified_fields: list[str] = Field(
+        default_factory=list,
+        description="Поля записи, сверенные с этим источником (history, highlights, media)",
+    )
+
+    @model_validator(mode="after")
+    def _a_date_needs_a_source(self) -> "GuideProvenance":
+        if self.last_verified is not None and not self.source_url:
+            raise ValueError("last_verified без source_url: дату сверки ставят только вместе с источником")
+        return self
+
+
+class GuideRecord(ApiModel):
+    """Запись `data/place_guides.json` ровно в том виде, в каком её оставляет редактор."""
+
+    place_id: str = Field(..., description="Идентификатор места из data/places.json")
+    status: GuideStatus = Field(
+        "seed", description="ready — справка полная, seed — заготовка, которой делятся честно"
+    )
+    history: list[_HistoryParagraph] = Field(
+        ..., min_length=2, max_length=3, description="2–3 абзаца истории"
+    )
+    highlights: list[_Highlight] = Field(
+        ..., min_length=3, max_length=5, description="3–5 фактов для человека на месте"
+    )
+    media: list[GuideMedia] = Field(default_factory=list, description="Снимки; первым идёт обложка")
+    media_note: str | None = Field(
+        None,
+        description="Почему снимков нет. Обязателен, если media пусто: пустая подборка не должна выглядеть решением",
+    )
+    provenance: GuideProvenance
+
+    @model_validator(mode="after")
+    def _absent_media_is_explained(self) -> "GuideRecord":
+        if not self.media and not (self.media_note or "").strip():
+            raise ValueError(f"{self.place_id}: у пустого media обязателен media_note")
+        return self
+
+    @model_validator(mode="after")
+    def _verified_fields_are_fields_of_the_record(self) -> "GuideRecord":
+        # Checked against the file's own keys, not the response's: `title` and the rest of the echoes
+        # come from the catalog, so no guide source can vouch for them.
+        unknown = set(self.provenance.verified_fields) - set(GuideRecord.model_fields)
+        if unknown:
+            raise ValueError(f"{self.place_id}: в verified_fields нет таких полей — {sorted(unknown)}")
+        return self
+
+
+class NearbyPlace(ApiModel):
+    """Соседняя точка: экран справки обещает «рядом», и эти же минуты показывает маршрут."""
+
+    id: str = Field(..., description="Идентификатор места — по нему просят и его справку")
+    title: str = Field(..., description="Название места")
+    category: str = Field(..., description="Категория объекта")
+    distance_m: int = Field(..., ge=0, description="По прямой от этого места, м")
+    travel_minutes: int = Field(
+        ...,
+        ge=1,
+        description=(
+            "Переход пешком в том же исчислении, что и `travel_minutes_from_prev` у маршрута: оценка "
+            "планировщика, а не навигатора"
+        ),
+    )
+
+
+class PlaceGuide(GuideRecord):
+    """Справка для клиента: редакторский текст плюс поля, эхом взятые из каталога, и соседи."""
+
+    title: str = Field(..., description="Название места из каталога")
+    category: str = Field(..., description="Категория объекта из каталога")
+    city: str = Field(..., description="Город из каталога")
+    location: Location
+    price: float = Field(..., ge=0, description="Стоимость посещения, руб. — то же число, что в карточке места")
+    working_hours: str | None = Field(None, description="Часы работы — тоже эхом из каталога")
+    visit_duration_minutes: int = Field(
+        ..., ge=15, description="Время на точку, которое под это место закладывает маршрутизатор"
+    )
+    nearby: list[NearbyPlace] = Field(
+        default_factory=list, description="Ближайшие к этому месту объекты каталога, по расстоянию"
+    )
+
+
+class GuideSummary(ApiModel):
+    """Указатель на справку: плашку «📖» вешают на него, а не проверяют 404 на каждом месте."""
+
+    place_id: str = Field(..., description="Идентификатор места — адрес GET /places/{place_id}/guide")
+    title: str = Field(..., description="Название места из каталога")
+    category: str = Field(..., description="Категория объекта")
+    city: str = Field(..., description="Город")
+    status: GuideStatus = Field(..., description="ready или seed")
+    cover_url: str | None = Field(
+        None, description="Обложка — `image_url` места; второй ссылки на картинку у клиента нет"
+    )
+    media_count: int = Field(..., ge=0, description="Сколько снимков лежит в справке")
+    last_verified: date | None = Field(None, description="Дата последней сверки текста с источником")
 
 
 class RouteRequest(ApiModel):

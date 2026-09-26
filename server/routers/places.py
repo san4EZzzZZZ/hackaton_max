@@ -45,7 +45,7 @@ BAD_COMBINATION_RESPONSE = {
 }
 
 
-def _places_or_503() -> tuple[Place, ...]:
+def places_or_503() -> tuple[Place, ...]:
     try:
         return load_places()
     except CatalogError as error:
@@ -100,7 +100,7 @@ async def list_places(
             status_code=422, detail="radius_km задаётся только вместе с near_lat и near_lon"
         )
 
-    results = list(_places_or_503())
+    results = list(places_or_503())
     if city:
         results = [place for place in results if city_matches(city, place.city)]
     if category:
@@ -131,7 +131,7 @@ async def list_places(
     responses={404: PLACE_NOT_FOUND_RESPONSE, 503: CATALOG_UNAVAILABLE_RESPONSE},
 )
 async def get_place(place_id: str) -> Place:
-    for place in _places_or_503():
+    for place in places_or_503():
         if place.id == place_id:
             return place
     raise HTTPException(status_code=404, detail=f"Место {place_id!r} не найдено")

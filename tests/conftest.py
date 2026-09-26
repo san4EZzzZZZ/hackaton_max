@@ -9,6 +9,7 @@ real `data/bot.db` out of the run.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import sys
 from collections.abc import Iterator
@@ -36,9 +37,11 @@ os.environ.pop("CORS_ALLOW_ORIGINS", None)
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+import server.guides as guides_module  # noqa: E402
 from server.app import create_app  # noqa: E402
 from server.catalog import invalidate_cache, load_places  # noqa: E402
 from server.database import Base, engine  # noqa: E402
+from server.guides import invalidate_cache as invalidate_guides  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -63,11 +66,51 @@ def empty_database() -> Iterator[None]:
 
 
 @pytest.fixture(autouse=True)
-def uncached_catalog() -> Iterator[None]:
-    """`load_places` is an `lru_cache`, so a test that points it at a broken file must not leak."""
+def uncached_data_files() -> Iterator[None]:
+    """Both seed loaders are `lru_cache`d, so a test that points one at a broken file must not leak."""
     invalidate_cache()
+    invalidate_guides()
     yield
     invalidate_cache()
+    invalidate_guides()
+
+
+def guide_record(place_id: str = "theatre-square", **overrides: object) -> dict:
+    """One complete, valid guide record that a test can break in exactly one place.
+
+    The two history paragraphs are as long as they are because the schema floors a paragraph at
+    120 characters; a stub shorter than that would fail the very test that only means to check
+    something else.
+    """
+    record = {
+        "place_id": place_id,
+        "status": "ready",
+        "history": [
+            "Первый абзац. Место появилось в конце XIX века на углу главной улицы и получило имя "
+            "своего первого владельца, чей промысел и определил облик всего квартала.",
+            "Второй абзац. В советское время здание национализировали, вернули его только в 2000-х, "
+            "после чего началась реставрация фасадов и утраченных ранее деталей кровли.",
+        ],
+        "highlights": [
+            "Остроконечная башня на углу",
+            "Даты, выбитые в кирпиче фасада",
+            "Мемориальная доска первому владельцу",
+        ],
+        "media": [],
+        "media_note": "Свободных снимков этого фасада на Commons нет",
+        "provenance": {"source_url": None, "last_verified": None, "verified_fields": []},
+    }
+    record.update(overrides)
+    return record
+
+
+def write_guides(monkeypatch, tmp_path: Path, *records: dict) -> Path:
+    """Point the guide loader at a throwaway file holding exactly these records."""
+    path = tmp_path / "place_guides.json"
+    monkeypatch.setattr(guides_module, "DATA_FILE", path)
+    path.write_text(json.dumps(list(records), ensure_ascii=False), encoding="utf-8")
+    invalidate_guides()
+    return path
 
 
 @contextmanager
