@@ -295,6 +295,161 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/routes:
+    post:
+      tags:
+      - Saved routes
+      summary: Сохранить собранный маршрут
+      description: 'Тело — ответ `POST /routes/generate` без изменений, плюс необязательный
+        `user_id`. Идентификатор выдаёт база: присланный внутри маршрута uuid4 остаётся
+        только в полезной нагрузке, для обращения к записи он не годится.'
+      operationId: create_saved_route_api_v1_routes_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveRouteRequest'
+      responses:
+        '201':
+          description: Запись создана и лежит в базе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedRouteResponse'
+        '422':
+          description: 'Тело не проходит проверку: список ошибок валидации либо строка
+            с перечислением неизвестных каталогу идентификаторов мест'
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/ApiError'
+                - $ref: '#/components/schemas/HTTPValidationError'
+        '503':
+          description: База данных не отвечает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    get:
+      tags:
+      - Saved routes
+      summary: Сохранённые маршруты
+      description: 'Свежие сверху. `user_id` фильтрует по заявленному владельцу —
+        это удобство, а не защита: без него видно чужие сохранённые маршруты тоже.
+        Всего подходящих записей — в X-Total-Count.'
+      operationId: read_saved_routes_api_v1_routes_get
+      parameters:
+      - name: user_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 9223372036854775807
+            minimum: 1
+          - type: 'null'
+          description: Только маршруты этого владельца
+          title: User Id
+        description: Только маршруты этого владельца
+      - name: limit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 200
+            minimum: 1
+          - type: 'null'
+          description: Сколько записей вернуть
+          title: Limit
+        description: Сколько записей вернуть
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          description: Пропустить N первых записей
+          default: 0
+          title: Offset
+        description: Пропустить N первых записей
+      responses:
+        '200':
+          description: Список сохранённых маршрутов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SavedRouteResponse'
+                title: Response Read Saved Routes Api V1 Routes Get
+          headers:
+            X-Total-Count:
+              description: Сколько объектов подошло под фильтры, до применения limit/offset
+              schema:
+                type: integer
+                minimum: 0
+            X-Offset:
+              description: Смещение, с которого взята текущая страница
+              schema:
+                type: integer
+                minimum: 0
+        '503':
+          description: База данных не отвечает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/routes/{route_id}:
+    get:
+      tags:
+      - Saved routes
+      summary: Карточка сохранённого маршрута
+      operationId: read_saved_route_api_v1_routes__route_id__get
+      parameters:
+      - name: route_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          description: Идентификатор записи, выдаёт база
+          title: Route Id
+        description: Идентификатор записи, выдаёт база
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedRouteResponse'
+        '404':
+          description: Сохранённого маршрута с таким идентификатором нет
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          description: База данных не отвечает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /webhook:
     post:
       summary: Webhook
@@ -703,6 +858,113 @@ components:
       - visit_duration_minutes
       title: RouteStop
       description: One point of an assembled route with its place in the timeline.
+    SaveRouteRequest:
+      properties:
+        route_id:
+          type: string
+          title: Route Id
+        title:
+          type: string
+          title: Title
+        city:
+          type: string
+          title: City
+        total_duration_hours:
+          type: number
+          minimum: 0.0
+          title: Total Duration Hours
+          description: Визиты и переходы между точками
+        total_cost:
+          type: number
+          minimum: 0.0
+          title: Total Cost
+          description: Суммарная стоимость посещения, руб.
+        places:
+          items:
+            $ref: '#/components/schemas/Place'
+          type: array
+          title: Places
+          description: Точки в порядке визита
+        stops:
+          items:
+            $ref: '#/components/schemas/RouteStop'
+          type: array
+          title: Stops
+          description: Те же точки с таймингами переходов; пуст, если маршрут не собран
+        user_id:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            minimum: 1.0
+          - type: 'null'
+          title: User Id
+          description: 'Владелец маршрута. Не аутентифицируется: см. README, раздел
+            про сохранённые маршруты'
+      additionalProperties: false
+      type: object
+      required:
+      - route_id
+      - title
+      - city
+      - total_duration_hours
+      - total_cost
+      title: SaveRouteRequest
+      description: 'Ответ генератора, отправленный обратно без изменений, плюс необязательный
+        владелец.
+
+
+        Наследование держит обещание буквальный: сохраняется ровно то, что вернул
+
+        `POST /routes/generate`. Неизвестные ключи отвергаются по той же причине,
+        что и у `RouteRequest`.'
+    SavedRouteResponse:
+      properties:
+        route_id:
+          type: integer
+          title: Route Id
+          description: Идентификатор записи, выдаёт база
+        user_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: User Id
+          description: Владелец, если его передали при сохранении
+        title:
+          type: string
+          title: Title
+        city:
+          type: string
+          title: City
+        total_cost:
+          type: number
+          minimum: 0.0
+          title: Total Cost
+          description: Стоимость маршрута на момент сохранения, руб.
+        stop_count:
+          type: integer
+          minimum: 0.0
+          title: Stop Count
+          description: Число точек в сохранённом маршруте
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+          description: Момент сохранения, UTC
+        route:
+          $ref: '#/components/schemas/RouteResponse'
+          description: Ответ генератора ровно так, как он сохранён
+      type: object
+      required:
+      - route_id
+      - title
+      - city
+      - total_cost
+      - stop_count
+      - created_at
+      - route
+      title: SavedRouteResponse
+      description: 'Сохранённый маршрут: исходный ответ генератора под собственным
+        постоянным идентификатором.'
     Update:
       properties:
         update_type:

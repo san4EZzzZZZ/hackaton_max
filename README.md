@@ -15,11 +15,11 @@ bot/client.py         httpx.AsyncClient: единый пул, ретраи, rate
 bot/keyboards.py      билдеры inline_keyboard (open_app / link / callback / message)
 bot/dispatcher.py     роутинг по update_type и командам + дедупликация событий + upsert пользователя
 bot/handlers/start.py приветствие, фолбэк на любой текст, ответы на callback
-server/database.py    AsyncEngine + aiosqlite, PRAGMA WAL/synchronous/foreign_keys, модель User
-server/schemas.py     публичные контракты: Place / RouteRequest / RouteResponse + описания для OpenAPI
+server/database.py    AsyncEngine + aiosqlite, PRAGMA WAL/synchronous/foreign_keys, модели User и SavedRoute
+server/schemas.py     публичные контракты: Place / RouteRequest / RouteResponse / SaveRouteRequest + описания для OpenAPI
 server/catalog.py     загрузка data/places.json (кэш), нестрогое сравнение города, список категорий
 server/routing.py     сборка маршрута: отбор по рейтингу на минуту затрат + 2-opt порядок переходов
-server/routers/       /api/v1: places, categories, routes/generate
+server/routers/       /api/v1: places, categories, routes/generate, routes (сохранённые маршруты)
 server/cors.py        CORS для браузерных запросов Mini App (CORS_ALLOW_ORIGINS)
 server/app.py         FastAPI: lifespan, POST /webhook, /health
 scripts/export_openapi.py
@@ -133,6 +133,9 @@ fingerprint: D2:6D:2D:02:31:B7:C3:9F:92:CC:73:85:12:BA:54:10:35:19:E4:40:5D:68:B
 | `GET` | `/api/v1/categories` | категории, фактически присутствующие в данных |
 | `GET` | `/api/v1/cities` | города каталога: `city`, `place_count`, `categories` |
 | `POST` | `/api/v1/routes/generate` | собранный маршрут с таймингами переходов |
+| `POST` | `/api/v1/routes` | сохранить маршрут: тело = ответ генератора + необязательный `user_id`, ответ `201` |
+| `GET` | `/api/v1/routes` | сохранённые маршруты, свежие сверху; фильтры `user_id`, `limit`/`offset` |
+| `GET` | `/api/v1/routes/{route_id}` | карточка сохранённого маршрута, 404 при промахе |
 | `GET` | `/docs` | OpenAPI/Swagger |
 
 Контракт для фронтенда — `DATA-API.yaml` в корне. Он не правится руками: после любого изменения эндпоинтов
@@ -204,7 +207,6 @@ CI (`.github/workflows/ci.yml`) на каждом PR прогоняет тест
   `max_budget` или `budget`.
 - Неизвестное поле в теле запроса — `422` со списком ошибок, а не молчаливое игнорирование: проглоченный
   `budget` неотличим от проигнорированного лимита.
-- `503` означает, что файл каталога недоступен или повреждён.
 - `q` ищет подстрокой по `title`, `description`, `address` и `category`: регистр, пунктуация и лишние
   пробелы не важны, но найтись должны **все** слова запроса. Пустой по словам запрос (`?`, `«»`) не находит
   ничего.
@@ -216,6 +218,15 @@ CI (`.github/workflows/ci.yml`) на каждом PR прогоняет тест
   прописывает оба имени в `Access-Control-Expose-Headers`, а `tests/test_cors.py` это проверяет.
 - `GET /cities` — готовый источник для селектора города: список `[{city, place_count, categories}]` в порядке
   появления городов в каталоге.
+- Сохранённый маршрут — это дословный ответ генератора в поле `route`. Наружный `route_id` — целое число
+  из базы, по нему и обращаются; вложенный `route.route_id` — тот самый одноразовый uuid4, `GET
+  /routes/{uuid}` даёт `422`. Запись переживает перезапуск процесса — в этом весь смысл эндпоинта.
+- `user_id` у сохранённых маршрутов **не аутентифицируется**: у HTTP-API нет ни сессии, ни токена, ни куки.
+  Фильтр `?user_id=` — удобство для своего списка, а не граница доступа: без него видно чужие записи, а
+  чтение по `route_id` владельца не проверяет вовсе. Настоящий контроль появится только вместе с
+  аутентификацией поверх этих эндпоинтов.
+- `503` означает, что файл каталога недоступен или повреждён, — а на эндпоинтах сохранённых маршрутов ещё
+  и что база не отвечает.
 - `/health` отвечает `200` и при недоступной базе — на него висит `HEALTHCHECK` контейнера, и валить бота
   из-за короткого сбоя SQLite не нужно. Проверяют готовность отдельно: `/readyz` отдаёт `503`.
 
