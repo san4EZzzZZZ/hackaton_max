@@ -5,6 +5,11 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
     plugins: [react()],
+    worker: {
+      // MapLibre's worker imports a sibling chunk; bundling it (not ?url copying) inlines
+      // that dependency into one classic-format file so it loads under the CDN's MIME rules.
+      format: 'iife',
+    },
     server: {
       port: 5173,
       allowedHosts: ['.trycloudflare.com'],
