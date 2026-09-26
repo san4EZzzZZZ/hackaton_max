@@ -8,15 +8,15 @@
   --ink-400: #8a94a0;
   --surface: #ffffff;
   --surface-tint: #e9f7ee;
-  --bg-top: #e3f5e9;
-  --bg-bottom: #f7fcf8;
+  --bg-top: #f0fdf4;
+  --bg-bottom: #ffffff;
   --danger: #d92d20;
   --radius-lg: 20px;
   --radius-md: 16px;
   --shadow-card: 0 2px 12px rgba(23, 33, 46, 0.06);
   --shadow-button: 0 8px 20px rgba(18, 183, 106, 0.35);
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
+  --font: 'SF Pro Display', 'SF Pro Text', 'SF Pro', -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 * {
@@ -35,7 +35,7 @@ body,
 body {
   font-family: var(--font);
   color: var(--ink-900);
-  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 55%);
+  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
   overscroll-behavior-y: none;
   -webkit-font-smoothing: antialiased;
 }

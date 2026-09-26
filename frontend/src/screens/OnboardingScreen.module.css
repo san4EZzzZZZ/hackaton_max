@@ -2,23 +2,29 @@
   gap: 0;
 }
 
+/* Double class beats global `.screen` padding shorthand regardless of bundle order. */
+.screen.screen {
+  padding: calc(env(safe-area-inset-top) + 60px) 24px
+    calc(env(safe-area-inset-bottom) + 32px);
+}
+
 .hero {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: left;
   width: 100%;
-  padding-top: 28px;
+  padding-top: 16px;
 }
 
 .iconWrap {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  border-radius: 100%;
   display: grid;
   place-items: center;
-  background: linear-gradient(160deg, #2fd572 0%, #0aa06e 100%);
-  box-shadow: 0 12px 28px rgba(18, 183, 106, 0.35);
+  background: #10b981;
+  box-shadow: 0 12px 28px rgba(16, 185, 129, 0.35);
   animation: rise-in 0.5s ease both;
 }
 
@@ -32,20 +38,22 @@
 .title {
   margin-top: 28px;
   width: 100%;
-  font-size: 26px;
-  line-height: 1.28;
+  font-size: 24px;
+  line-height: 1.2;
   font-weight: 700;
-  letter-spacing: -0.2px;
-  color: var(--ink-900);
+  letter-spacing: 0;
+  color: #111827;
   animation: rise-in 0.5s ease 0.08s both;
 }
 
 .subtitle {
   margin-top: 14px;
   width: 100%;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--ink-500);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0;
+  color: #6b7280;
   animation: rise-in 0.5s ease 0.16s both;
 }
 
@@ -59,52 +67,50 @@
 
 .card {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 16px;
-  border-radius: var(--radius-md);
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
   background: var(--surface);
-  box-shadow: var(--shadow-card);
+  border: 1px solid #f3f4f6;
   animation: rise-in 0.5s ease both;
 }
 
 .cardIcon {
   flex: none;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
-  background: var(--surface-tint);
-  color: var(--green-600);
+  background: #f0fdf4;
+  color: #10b981;
 }
 
 .cardIcon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.cardBody {
-  padding-top: 1px;
+  width: 20px;
+  height: 20px;
 }
 
 .cardTitle {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--ink-900);
+  line-height: 1.2;
+  color: #000;
 }
 
 .cardText {
   margin-top: 4px;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--ink-400);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0;
+  color: #6b7280;
 }
 
 .footer {
   flex: none;
   padding-top: 20px;
-  padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
   width: 100%;
   animation: rise-in 0.5s ease 0.44s both;
 }

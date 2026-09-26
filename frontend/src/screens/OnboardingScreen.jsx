@@ -1,5 +1,5 @@
 import PrimaryButton from '../components/PrimaryButton.jsx'
-import { NavigationIcon, ClockIcon, SparkleRouteIcon } from '../components/icons.jsx'
+import { NavigationIcon, ClockIcon, SparklesIcon } from '../components/icons.jsx'
 import styles from './OnboardingScreen.module.css'
 
 const FEATURES = [
@@ -9,7 +9,7 @@ const FEATURES = [
     text: 'Маршруты строго от 1 до 4 часов с запасом времени',
   },
   {
-    icon: SparkleRouteIcon,
+    icon: SparklesIcon,
     title: 'Справка по пути',
     text: 'История и медиа открываются при приближении к объекту',
   },
@@ -25,7 +25,7 @@ export default function OnboardingScreen({ onStart }) {
           </div>
           <h1 className={styles.title}>Преврати свободное время в готовую прогулку</h1>
           <p className={styles.subtitle}>
-            Укажи доступное время и интересы — мы рассчитаем оптимальный пешеходный маршрут по
+            Укажи доступное время и интересы - мы рассчитаем оптимальный пешеходный маршрут по
             центру Ростова без лишнего планирования.
           </p>
         </div>
@@ -40,7 +40,7 @@ export default function OnboardingScreen({ onStart }) {
               <div className={styles.cardIcon}>
                 <Icon />
               </div>
-              <div className={styles.cardBody}>
+              <div>
                 <h2 className={styles.cardTitle}>{title}</h2>
                 <p className={styles.cardText}>{text}</p>
               </div>
