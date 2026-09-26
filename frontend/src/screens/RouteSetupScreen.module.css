@@ -1,20 +1,30 @@
+/* Double class beats global `.screen` padding shorthand regardless of bundle order. */
+.screen.screen {
+  padding: calc(env(safe-area-inset-top) + 60px) 24px
+    calc(env(safe-area-inset-bottom) + 32px);
+  gap: 0;
+  background: #f9fafb;
+}
+
 .header {
+  position: relative;
+  flex: none;
   display: flex;
   align-items: center;
-  gap: 12px;
   animation: rise-in 0.4s ease both;
 }
 
+/* Figma: 38×38, radius 8, stroke #000 1px inside, icon 20×20 #9CA3AF */
 .back {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   flex: none;
-  border-radius: 12px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
   background: var(--surface);
-  box-shadow: var(--shadow-card);
-  color: var(--ink-900);
+  border: 1px solid #000;
+  color: #9ca3af;
   transition: transform 0.12s ease;
 }
 
@@ -27,105 +37,210 @@
   height: 20px;
 }
 
-.headerTitle {
-  font-size: 18px;
+/* Figma: 99×24 pill, radius 12, #ECFDF5 on #059669, text 12/700 */
+.stepBadge {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 24px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 12px;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 12px;
   font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.title {
+  margin-top: 16px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #111827;
+  animation: rise-in 0.4s ease 0.06s both;
+}
+
+.subtitle {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #6b7280;
+  animation: rise-in 0.4s ease 0.1s both;
 }
 
 .section {
-  margin-top: 28px;
+  margin-top: 16px;
   width: 100%;
-  animation: rise-in 0.4s ease 0.08s both;
+  animation: rise-in 0.4s ease 0.16s both;
 }
 
-.sectionTitle {
-  font-size: 15px;
-  font-weight: 700;
-  margin-bottom: 12px;
-}
-
+/* Figma: cards 164×78, radius 16, border #E5E7EB; active = 2px #10B981 + #F0FDF4 */
 .durations {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px 13.5px;
 }
 
 .duration {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 12px 4px;
-  border-radius: 14px;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 18px;
+  border-radius: 16px;
   background: var(--surface);
-  box-shadow: var(--shadow-card);
-  transition: transform 0.12s ease, background 0.2s ease, color 0.2s ease;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+  transition: transform 0.12s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
 .duration:active {
-  transform: scale(0.95);
+  transform: scale(0.97);
 }
 
-.durationValue {
-  font-size: 20px;
-  font-weight: 700;
+.durationIcon {
+  width: 16px;
+  height: 16px;
+  color: #9ca3af;
 }
 
-.durationUnit {
-  font-size: 11px;
-  color: var(--ink-400);
+.durationLabel {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #374151;
 }
 
 .durationActive {
-  background: linear-gradient(160deg, #2fd572 0%, #0aa06e 100%);
-  color: #fff;
-  box-shadow: var(--shadow-button);
+  border-color: #10b981;
+  box-shadow: inset 0 0 0 1px #10b981;
+  background: #f0fdf4;
 }
 
-.durationActive .durationUnit {
-  color: rgba(255, 255, 255, 0.85);
+.durationActive .durationIcon {
+  color: #10b981;
 }
 
+.durationActive .durationLabel {
+  color: #047857;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #111827;
+  margin-bottom: 16px;
+}
+
+/* Figma: chips height 40, radius 20, border #E5E7EB, text 14 #4B5563;
+   selected = #111827 with white text; emoji ~18px, no plate */
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 10px 9px;
 }
 
 .chip {
-  padding: 10px 16px;
-  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 20px;
   background: var(--surface);
-  box-shadow: var(--shadow-card);
+  border: 1px solid #e5e7eb;
   font-size: 14px;
   font-weight: 500;
-  color: var(--ink-900);
-  border: 1.5px solid transparent;
-  transition: transform 0.12s ease, border-color 0.2s ease, color 0.2s ease,
-    background 0.2s ease;
+  line-height: 1;
+  color: #4b5563;
+  transition: transform 0.12s ease, background 0.2s ease, color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .chip:active {
   transform: scale(0.95);
 }
 
+.chipEmoji {
+  font-size: 18px;
+  line-height: 1;
+}
+
 .chipActive {
-  border-color: var(--green-600);
-  background: var(--surface-tint);
-  color: var(--green-900);
+  background: #111827;
+  border-color: #111827;
+  color: #fff;
 }
 
-.chipHint {
-  width: 100%;
+/* Figma: card 353×69, radius 12, border #F3F4F6; plate 36×36 r8 #F0FDF4 */
+.startCard {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 16px 13px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid #f3f4f6;
+  text-align: left;
+  animation: rise-in 0.4s ease 0.24s both;
+}
+
+.startIcon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: #f0fdf4;
+  color: #10b981;
+}
+
+.startIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.startText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.startLabel {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.startValue {
   margin-top: 4px;
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--ink-400);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #1f2937;
+  white-space: nowrap;
 }
 
-.emptyHint {
+.startChange {
+  margin-left: auto;
+  flex: none;
   font-size: 14px;
-  color: var(--ink-500);
+  font-weight: 500;
+  line-height: 1.2;
+  color: #10b981;
 }
 
 .submitError {
@@ -142,6 +257,258 @@
 .footer {
   flex: none;
   padding-top: 20px;
-  padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
   width: 100%;
+  animation: rise-in 0.4s ease 0.32s both;
+}
+
+/* ── Bottom sheet «Откуда стартуем?» ─────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  background: rgba(17, 24, 39, 0.45);
+  animation: scrim-in 0.28s ease both;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  height: 92dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  padding: 0 24px calc(env(safe-area-inset-bottom) + 24px);
+  box-shadow: 0 -12px 40px rgba(17, 24, 39, 0.18);
+  animation: sheet-up 0.28s ease both;
+}
+
+.sheetHandle {
+  flex: none;
+  width: 36px;
+  height: 4px;
+  margin: 12px auto 0;
+  border-radius: 2px;
+  background: #e5e7eb;
+}
+
+/* Figma: pin icon + input 38h r12 #F9FAFB border #E5E7EB + 32px round X */
+.searchRow {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.searchIcon {
+  flex: none;
+  width: 22px;
+  display: grid;
+  place-items: center;
+  color: #9ca3af;
+}
+
+.searchIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.searchInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 38px;
+  border-radius: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 14px;
+  color: #111827;
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: #9ca3af;
+}
+
+.searchInput:focus {
+  border-color: #10b981;
+}
+
+.searchClose {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #f3f4f6;
+  color: #374151;
+  transition: transform 0.12s ease;
+}
+
+.searchClose:active {
+  transform: scale(0.92);
+}
+
+.searchClose svg {
+  width: 14px;
+  height: 14px;
+}
+
+.sheetBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.sheetBody::-webkit-scrollbar {
+  display: none;
+}
+
+.sheetSection {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.searchEmpty {
+  padding: 6px 2px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #9ca3af;
+}
+
+/* Figma: option card min 62h, radius 12, border 1.5px #F3F4F6; active = #10B981 */
+.row {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  min-height: 62px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1.5px solid #f3f4f6;
+  text-align: left;
+  transition: border-color 0.2s ease, transform 0.12s ease;
+}
+
+.row:active {
+  transform: scale(0.98);
+}
+
+.rowActive {
+  border-color: #10b981;
+}
+
+.rowIcon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: #f0fdf4;
+  color: #10b981;
+}
+
+.rowIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.rowText {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rowLabel {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowSub {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Figma: unselected Ø19 border 1.5 #AFAFAF; selected = filled #10B981 + white check */
+.radio {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid #afafaf;
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.radioOn {
+  border-color: #10b981;
+  background: #10b981;
+}
+
+.radioOn::after {
+  content: '';
+  width: 5.5px;
+  height: 9.5px;
+  margin-top: -2px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.sheetFooter {
+  flex: none;
+  padding-top: 18px;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
