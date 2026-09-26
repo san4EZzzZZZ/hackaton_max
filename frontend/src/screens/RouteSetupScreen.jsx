@@ -5,6 +5,8 @@ import {
   ClockIcon,
   CloseIcon,
   NavigationIcon,
+  PinIcon,
+  SearchIcon,
 } from '../components/icons.jsx'
 import { api } from '../lib/api.js'
 import styles from './RouteSetupScreen.module.css'
@@ -17,20 +19,14 @@ const DURATIONS = [
 ]
 
 const KNOWN_PLACES = [
-  { emoji: '🏟️', name: 'Дворец спорта' },
-  { emoji: '🌳', name: 'Селект-парк' },
-  { emoji: '🏰', name: 'Ростовский кремль' },
-  { emoji: '🎭', name: 'Театр Горького' },
-]
-
-const START_OPTIONS = [
-  { id: 'geo', emoji: '📍', label: 'Текущая геопозиция' },
-  { id: 'none', emoji: '🕐', label: 'Не выбрано' },
+  { name: 'Парк им. Максима Горького', address: 'ул. Большая Садовая, 45' },
+  { name: 'Пушкинская улица', address: 'пересечение с пр. Ворошиловским' },
+  { name: 'Дворец спорта', address: 'ул. Левобережная, 3' },
+  { name: 'Театр Горького', address: 'ул. Большая Садовая, 27' },
 ]
 
 const START_LABELS = {
   geo: 'Текущая геопозиция',
-  none: 'Не выбрано',
 }
 
 // Чипы из Frame 2 — настроения, а не категории каталога; на сабмите
@@ -53,11 +49,13 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
   const [start, setStart] = useState('geo')
   const [sheetOpen, setSheetOpen] = useState(false)
   const [draftStart, setDraftStart] = useState('geo')
+  const [query, setQuery] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
 
   const openSheet = () => {
     setDraftStart(start)
+    setQuery('')
     setSheetOpen(true)
   }
 
@@ -185,11 +183,22 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
             onClick={(event) => event.stopPropagation()}
           >
             <span className={styles.sheetHandle} aria-hidden="true" />
-            <div className={styles.sheetHeader}>
-              <h2 className={styles.sheetTitle}>Откуда стартуем?</h2>
+
+            <div className={styles.searchRow}>
+              <span className={styles.searchIcon} aria-hidden="true">
+                <SearchIcon />
+              </span>
+              <input
+                className={styles.searchInput}
+                type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Поиск улицы, парка, ориентира…"
+                aria-label="Поиск места"
+              />
               <button
                 type="button"
-                className={styles.sheetClose}
+                className={styles.searchClose}
                 onClick={() => setSheetOpen(false)}
                 aria-label="Закрыть"
               >
@@ -198,46 +207,45 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
             </div>
 
             <div className={styles.sheetBody}>
-              <p className={styles.sheetSection}>Известные точки</p>
-              <div className={styles.chips}>
-                {KNOWN_PLACES.map(({ emoji, name }) => (
-                  <button
-                    key={name}
-                    type="button"
-                    aria-pressed={draftStart === name}
-                    className={`${styles.chip} ${draftStart === name ? styles.chipActive : ''}`}
-                    onClick={() => setDraftStart(name)}
-                  >
-                    <span className={styles.chipEmoji} aria-hidden="true">
-                      {emoji}
-                    </span>
-                    {name}
-                  </button>
-                ))}
-              </div>
+              <button
+                type="button"
+                className={`${styles.row} ${draftStart === 'geo' ? styles.rowActive : ''}`}
+                onClick={() => setDraftStart('geo')}
+              >
+                <span className={styles.rowIcon} aria-hidden="true">
+                  <PinIcon />
+                </span>
+                <span className={styles.rowText}>
+                  <span className={styles.rowLabel}>Определить автоматически</span>
+                  <span className={styles.rowSub}>Использовать GPS телефона</span>
+                </span>
+                <span
+                  className={`${styles.radio} ${draftStart === 'geo' ? styles.radioOn : ''}`}
+                  aria-hidden="true"
+                />
+              </button>
 
-              <hr className={styles.sheetDivider} />
-
-              <p className={styles.sheetSection}>Другое</p>
-              {START_OPTIONS.map(({ id, emoji, label }) => (
+              <p className={styles.sheetSection}>Популярные точки в центре</p>
+              {KNOWN_PLACES.filter(
+                (place) =>
+                  place.name.toLowerCase().includes(query.trim().toLowerCase()) ||
+                  place.address.toLowerCase().includes(query.trim().toLowerCase()),
+              ).map(({ name, address }) => (
                 <button
-                  key={id}
+                  key={name}
                   type="button"
-                  className={styles.sheetOption}
-                  onClick={() => setDraftStart(id)}
+                  className={`${styles.row} ${draftStart === name ? styles.rowActive : ''}`}
+                  onClick={() => setDraftStart(name)}
                 >
-                  <span className={styles.sheetOptionEmoji} aria-hidden="true">
-                    {emoji}
+                  <span className={styles.rowIcon} aria-hidden="true">
+                    <PinIcon />
+                  </span>
+                  <span className={styles.rowText}>
+                    <span className={styles.rowLabel}>{name}</span>
+                    <span className={styles.rowSub}>{address}</span>
                   </span>
                   <span
-                    className={
-                      draftStart === id ? styles.sheetOptionLabelActive : styles.sheetOptionLabel
-                    }
-                  >
-                    {label}
-                  </span>
-                  <span
-                    className={`${styles.radio} ${draftStart === id ? styles.radioOn : ''}`}
+                    className={`${styles.radio} ${draftStart === name ? styles.radioOn : ''}`}
                     aria-hidden="true"
                   />
                 </button>
@@ -245,7 +253,7 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
             </div>
 
             <div className={styles.sheetFooter}>
-              <PrimaryButton onClick={applyStart}>Применить</PrimaryButton>
+              <PrimaryButton onClick={applyStart}>Подтвердить выбор</PrimaryButton>
             </div>
           </div>
         </div>
