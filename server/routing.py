@@ -15,7 +15,7 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from server.catalog import city_matches
+from server.catalog import city_matches, has_any_tag, normalize_tags
 from server.schemas import Location, Place, RouteRequest, RouteStop
 
 EARTH_RADIUS_KM = 6371.0
@@ -67,8 +67,9 @@ class _Candidate:
 
 
 def filter_candidates(places: list[Place], request: RouteRequest) -> list[_Candidate]:
-    """Apply the hard constraints: city, categories, Pushkin Card, budget and time ceiling."""
+    """Apply the hard constraints: city, categories, mood tags, Pushkin Card, budget and time ceiling."""
     wanted_categories = {category.strip().lower() for category in request.categories}
+    wanted_tags = normalize_tags(request.tags)
     time_budget = int(request.duration_hours * 60)
 
     result: list[_Candidate] = []
@@ -76,6 +77,8 @@ def filter_candidates(places: list[Place], request: RouteRequest) -> list[_Candi
         if not city_matches(request.city, place.city):
             continue
         if wanted_categories and place.category.lower() not in wanted_categories:
+            continue
+        if not has_any_tag(place, wanted_tags):
             continue
         if request.is_pushkin_card_only and not place.is_pushkin_card:
             continue

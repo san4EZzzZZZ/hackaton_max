@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Query, Response
 
 from server.catalog import (
     CatalogError,
+    chip_summaries,
     city_matches,
     known_categories,
     known_cities,
@@ -17,6 +18,7 @@ from server.schemas import (
     CATALOG_UNAVAILABLE_RESPONSE,
     PAGINATION_HEADERS,
     PLACE_NOT_FOUND_RESPONSE,
+    Chip,
     CitySummary,
     Location,
     Place,
@@ -148,6 +150,27 @@ async def list_categories() -> list[str]:
         return list(known_categories())
     except CatalogError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
+
+
+@router.get(
+    "/chips",
+    response_model=list[Chip],
+    summary="Чипы «Чем хочешь заняться?»",
+    description=(
+        "Настроенческие чипы экрана настройки прогулки вместе с числом мест, которые под ними реально "
+        "лежат. Пустого чипа в ответе не бывает, поэтому список рисуют как есть, без своего перечня "
+        "«что из этого работает». Порядок постоянный: кофе, культура, прогулка, перекус, фото."
+    ),
+    responses={503: CATALOG_UNAVAILABLE_RESPONSE},
+)
+async def list_chips(
+    city: str | None = Query(None, description="Считать чипы только по местам этого города"),
+) -> list[Chip]:
+    """Категории отвечают «что это за объект», чипы — «зачем туда идут»: кофейня остаётся кофейней."""
+    places = list(places_or_503())
+    if city:
+        places = [place for place in places if city_matches(city, place.city)]
+    return list(chip_summaries(places))
 
 
 @router.get(

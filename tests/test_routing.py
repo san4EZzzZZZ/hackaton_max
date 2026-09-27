@@ -42,11 +42,13 @@ def place(
     category: str = "Музей",
     city: str = "Ростов-на-Дону",
     pushkin: bool = False,
+    tags: tuple[str, ...] = (),
 ) -> Place:
     return Place(
         id=identifier,
         title=f"Тест {identifier}",
         category=category,
+        tags=list(tags),
         city=city,
         location=Location(lat=lat, lon=lon),
         price=price,
@@ -254,14 +256,21 @@ CATEGORY_SETS = [
     ["Памятник"],
     ["Парк", "Памятник", "Архитектура"],
 ]
+# The chips `GET /chips` actually offers. Unlike categories these are the mood axis the setup screen
+# sells, and a chip that reaches the client must be walkable: an hour of «Перекусить» is a route, not
+# an empty card.
+CHIP_SETS = [["coffee"], ["culture"], ["walk"], ["food"], ["photo"]]
+CHIP_DURATIONS = [1.0, 2.0, 4.0, 8.0]
 
 
 def catalog() -> list[Place]:
     return list(load_places())
 
 
-def walk(hours: float, categories: list[str] | None = None) -> tuple[list[RouteStop], int, float]:
-    payload = request(duration_hours=hours, categories=categories or [])
+def walk(
+    hours: float, categories: list[str] | None = None, tags: list[str] | None = None
+) -> tuple[list[RouteStop], int, float]:
+    payload = request(duration_hours=hours, categories=categories or [], tags=tags or [])
     return assemble_route(filter_candidates(catalog(), payload), payload)
 
 
@@ -280,6 +289,63 @@ def test_more_time_never_means_a_shorter_walk(categories: list[str]) -> None:
             f"{previous_hours} h returned {previous_stops}"
         )
         previous_hours, previous_stops = hours, len(stops)
+
+
+@pytest.mark.parametrize("tags", CHIP_SETS, ids=lambda value: "+".join(value))
+def test_a_chip_walks_only_to_places_marked_with_it(tags: list[str]) -> None:
+    """Whatever `/chips` counts, `/routes/generate` has to deliver — the same predicate, not a guess.
+
+    The screen used to promise «Взять кофе» and send no filter at all, so the route came back with a
+    zoo in it. Every stop now carries the tag it was asked for, and none of them is invented.
+    """
+    for hours in CHIP_DURATIONS:
+        stops, minutes, _cost = walk(hours, tags=tags)
+        for stop in stops:
+            assert set(tags) & set(stop.place.tags), f"{stop.place.id} попал в подборку {tags}"
+        assert minutes <= int(hours * 60)
+        assert stops, f"чип {tags} на {hours} h не даёт ни одной точки — экран обязан был его не показать"
+
+
+@pytest.mark.parametrize("tags", CHIP_SETS, ids=lambda value: "+".join(value))
+def test_a_chip_gets_no_shorter_a_walk_for_more_time(tags: list[str]) -> None:
+    previous_stops = 0
+    for hours in CHIP_DURATIONS:
+        stops, _minutes, _cost = walk(hours, tags=tags)
+        assert len(stops) >= previous_stops, f"{tags}: {hours} h вернул {len(stops)} точек, {previous_stops} было"
+        previous_stops = len(stops)
+
+
+def test_the_two_axes_narrow_the_pool_together_instead_of_one_replacing_the_other() -> None:
+    """`tags` AND `categories`, OR inside each list — and an empty list means that axis is not filtering."""
+    pool = catalog()
+    all_of_it = {c.place.id for c in filter_candidates(pool, request(duration_hours=4))}
+    assert all_of_it == {place.id for place in pool}, "пустые фильтры не должны ничего отсекать"
+
+    tagged = {c.place.id for c in filter_candidates(pool, request(duration_hours=4, tags=["walk"]))}
+    typed = {
+        c.place.id
+        for c in filter_candidates(pool, request(duration_hours=4, categories=["Парк"]))
+    }
+    both = {
+        c.place.id
+        for c in filter_candidates(
+            pool, request(duration_hours=4, categories=["Парк"], tags=["walk"])
+        )
+    }
+    assert both == tagged & typed
+    assert both < tagged, "парки — не все прогулки, иначе категорийная ось перестала работать"
+    assert both, "пересечение двух осей обязано быть непустым на реальных данных"
+
+
+def test_an_or_list_of_tags_widens_the_way_the_chip_screen_reads_it() -> None:
+    """ChipSpec.tags is a list so a chip can want several moods; inside one axis it is OR, never AND."""
+    pool = catalog()
+    single = {c.place.id for c in filter_candidates(pool, request(duration_hours=4, tags=["coffee"]))}
+    joined = {
+        c.place.id
+        for c in filter_candidates(pool, request(duration_hours=4, tags=["coffee", "photo"]))
+    }
+    assert single < joined, "второй тег обязан добавлять места, а не требовать оба сразу"
 
 
 def test_the_requests_the_mini_app_opens_with_are_measured_in_stops() -> None:
@@ -351,9 +417,11 @@ def test_the_time_and_the_distance_fields_describe_the_same_walk() -> None:
         assert current.distance_m_from_prev == round(
             haversine_km(previous.place.location, current.place.location) * 1000
         )
-    # Four hours of walking is a few kilometres. If this ever reads like a marathon, `TRANSIT_KMH`
-    # has drifted away from the pedestrian promise the onboarding screen makes.
-    assert 1.5 < sum(stop.distance_m_from_prev for stop in stops) / 1000 < 6
+    # Four hours of walking is a walk, not a lap of one square and not a marathon. The floor used to
+    # sit at 1.5 km for a sparser catalog; #36 filled the center with short stops, and the densest
+    # route that fits is now nine of them inside 1.5 km, so what this guards is that the engine still
+    # spreads the walk over the streets instead of parking the visitor at one address.
+    assert 1.0 < sum(stop.distance_m_from_prev for stop in stops) / 1000 < 6
 
 
 def test_the_real_catalog_gives_the_same_walk_whatever_order_the_records_come_in() -> None:

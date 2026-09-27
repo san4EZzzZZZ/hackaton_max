@@ -124,6 +124,53 @@ def test_only_pushkin_objects_survive_that_switch(client: TestClient) -> None:
     assert all(place["is_pushkin_card"] for place in route["places"])
 
 
+def test_a_chip_walks_only_to_places_that_carried_it(client: TestClient) -> None:
+    """`tags` is the axis the setup screen sends instead of a guessed category list.
+
+    The screen used to answer «Перекусить» with `categories: []`, which the planner reads as «no
+    filter» — so it built a walk past the zoo and the user saw a coffee chip that did nothing.
+    """
+    for chip in ("coffee", "culture", "walk", "food", "photo"):
+        route = generate(client, duration_hours=4, tags=[chip]).json()
+        assert route["stops"], f"чип {chip} не дал маршрута"
+        for place in route["places"]:
+            assert chip in place["tags"], f'{place["id"]} в подборке {chip}'
+
+
+def test_two_tags_in_one_request_widen_instead_of_demanding_both(client: TestClient) -> None:
+    """OR inside the `tags` list, the same way the categories list already works.
+
+    AND would be the readable wrong reading: «кофе или фото» gives a walk of both kinds of place,
+    while «кофе и фото» asks for a coffeehouse that is also a photo spot and returns three stops.
+    """
+    alone = generate(client, duration_hours=8, tags=["coffee"]).json()["places"]
+    joined = generate(client, duration_hours=8, tags=["coffee", "photo"]).json()["places"]
+    assert len(joined) >= len(alone), "второй тег расширяет пул, а не требует оба сразу"
+    assert any("photo" not in place["tags"] for place in joined), "в подборку попали бы только совмещающие"
+    assert any("coffee" not in place["tags"] for place in joined), "тег «photo» не добавил ни одного места"
+    assert all({"coffee", "photo"} & set(place["tags"]) for place in joined)
+
+
+def test_tags_and_categories_narrow_together(client: TestClient) -> None:
+    route = generate(client, duration_hours=8, categories=["Парк"], tags=["walk"]).json()
+    assert route["stops"]
+    for place in route["places"]:
+        assert place["category"] == "Парк" and "walk" in place["tags"]
+    # Ни один парк не кормит: пересечение пустое, и это тот же 404, что даёт пустая категория.
+    assert generate(client, duration_hours=2, categories=["Парк"], tags=["coffee"]).status_code == 404
+
+
+def test_an_unknown_tag_is_a_filter_with_no_results_not_a_broken_request(client: TestClient) -> None:
+    """`RouteRequest.tags` is a list of plain strings on purpose.
+
+    `Literal` here would answer 422 while a wrong category answers 404, and one screen cannot tell the
+    two apart: both mean «nothing matched», only one of them means the client sent nonsense.
+    """
+    response = generate(client, duration_hours=2, tags=["kofe"])
+    assert response.status_code == 404
+    assert isinstance(response.json()["detail"], str)
+
+
 def test_the_spec_documents_the_codes_clients_must_handle(client: TestClient) -> None:
     paths = client.get("/openapi.json").json()["paths"]
     assert paths[GENERATE]["post"]["responses"]["404"]["content"]["application/json"]["schema"][

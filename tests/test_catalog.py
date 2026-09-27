@@ -6,6 +6,7 @@ import json
 import re
 from collections import Counter
 from pathlib import Path
+from typing import get_args
 from urllib.parse import urlsplit
 
 import pytest
@@ -13,7 +14,9 @@ from pydantic import ValidationError
 
 import server.catalog as catalog_module
 from server.catalog import (
+    CHIPS,
     CatalogError,
+    chip_summaries,
     city_matches,
     invalidate_cache,
     known_categories,
@@ -22,7 +25,7 @@ from server.catalog import (
     search_matches,
 )
 from server.routing import haversine_km
-from server.schemas import Location, Place
+from server.schemas import Location, Place, TagId
 
 CATALOG_CITY = "Ростов-на-Дону"
 
@@ -115,8 +118,12 @@ def test_the_center_is_dense_enough_for_an_hour_of_walking() -> None:
     )
 
 
-def test_a_provenance_note_names_a_wikidata_item_and_admits_what_was_not_checked() -> None:
-    """Coordinates come out of Wikidata statements, never out of a guess, so the file says which.
+def test_a_provenance_note_names_a_data_source_and_admits_what_was_not_checked() -> None:
+    """Coordinates come out of a registry, never out of a guess, so the file says which.
+
+    Two registries are allowed. Wikidata for sights: its statements carry coordinates people have
+    checked. OpenStreetMap for the everyday addressable stuff — a coffeehouse has no Wikidata item at
+    all, and asking for one would mean inventing the number. Both are links a reviewer can open.
 
     `provenance` is invisible to the API (`Place` ignores what it does not declare): it is the reviewer's
     trail. A place may carry an unverified price or rating while it waits for a source, but never an
@@ -126,7 +133,10 @@ def test_a_provenance_note_names_a_wikidata_item_and_admits_what_was_not_checked
     assert noted, "новые места обязаны оставлять след источника"
     for place in noted:
         provenance = place["provenance"]
-        assert re.fullmatch(r"https://www\.wikidata\.org/wiki/Q\d+", provenance["source_url"])
+        assert re.fullmatch(
+            r"https://www\.(?:wikidata\.org/wiki/Q\d+|openstreetmap\.org/(?:node|way)/\d+)",
+            provenance["source_url"],
+        ), provenance["source_url"]
         assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", provenance["last_verified"])
         unverified = set(provenance["unverified_fields"])
         assert unverified <= set(place), "в непроверенном списке нет такого поля записи"
@@ -135,16 +145,92 @@ def test_a_provenance_note_names_a_wikidata_item_and_admits_what_was_not_checked
         )
 
 
+# A sight without a picture is a gap in the work, not a fact about the city: Commons photographs every
+# museum, church and park in Rostov. `null` there means "nobody looked".
+UNPHOTOGRAPHED_SIGHTS = {"sobino-park"}
+
+
 def test_image_links_are_commons_thumbnails_or_a_deliberate_null() -> None:
     raw = raw_catalog()
     assert all("image_url" in record for record in raw)
-    filled = [record["image_url"] for record in raw if record["image_url"]]
-    assert len(filled) >= len(raw) - 2, "the demo catalog is meant to be mostly illustrated"
+    empty = [record for record in raw if not record["image_url"]]
+    # The opposite rule used to be "at most two records may be unlit", which was written for a catalog
+    # of museums. #36 adds ten coffeehouses, and a private café has no Commons photo because nobody has
+    # photographed its signboard; pointing at some stranger's picture to fill the pixel would be a lie.
+    # So the exception is now named by what the place *is*, and a museum with `null` still fails here.
+    unlit_sights = {
+        record["id"]
+        for record in empty
+        if not ({"coffee", "food"} & set(record.get("tags", [])))
+    }
+    assert unlit_sights == UNPHOTOGRAPHED_SIGHTS, (
+        f"место не из списка отказов осталось без фото: {unlit_sights - UNPHOTOGRAPHED_SIGHTS}; "
+        f"зря отказались: {UNPHOTOGRAPHED_SIGHTS - unlit_sights}"
+    )
     # Hotlinked thumbnails only: nothing here may turn into a request our server makes at runtime.
+    filled = [record["image_url"] for record in raw if record["image_url"]]
     assert all(
         url.startswith("https://") and urlsplit(url).hostname.endswith(".wikimedia.org")
         for url in filled
     )
+
+
+def test_tags_only_use_the_declared_vocabulary() -> None:
+    """A typo in `data/places.json` must read as a typo, not as a filter that quietly widened.
+
+    `Place.tags` is a `Literal` and Pydantic would already refuse the file, but only when somebody
+    loads it — here the name of the bad record is in the failure.
+    """
+    declared = set(get_args(TagId))
+    for record in raw_catalog():
+        unknown = set(record.get("tags", [])) - declared
+        assert not unknown, f'{record["id"]}: тегов {sorted(unknown)} нет в словаре {sorted(declared)}'
+
+
+def test_the_markup_reaches_beyond_the_places_the_chip_screen_used_to_hardcode() -> None:
+    """Tags are only honest if they are actually on the records, not only in `CHIPS`.
+
+    A catalog where «Красивые фото» matches three objects is the same lying screen as the hardcoded
+    one, just with an API call in front of it.
+    """
+    tagged = [record for record in raw_catalog() if record.get("tags")]
+    assert len(tagged) >= 0.9 * len(raw_catalog()), (
+        f"размечено только {len(tagged)} из {len(raw_catalog())} записей"
+    )
+
+
+def test_chip_counts_are_the_same_predicate_the_planner_filters_with() -> None:
+    """`/chips` promises a number and `/routes/generate` has to fill it.
+
+    Counted from the raw file on purpose: if the counter checked `Chip.tags` through the same call that
+    filters with it, a tag nobody ever put on a record could still look alive.
+    """
+    counts = {
+        spec.id: {
+            record["id"]
+            for record in raw_catalog()
+            if set(spec.tags) & set(record.get("tags", []))
+        }
+        for spec in CHIPS
+    }
+    expected_order = [spec.id for spec in CHIPS if counts[spec.id]]
+    found = chip_summaries(load_places())
+    assert [chip.id for chip in found] == expected_order, "порядок чипов = порядок объявления без пустых"
+    for chip in found:
+        assert chip.place_count == len(counts[chip.id]), chip.id
+        assert chip.tags and chip.label and chip.emoji
+
+
+def test_a_chip_with_nothing_under_it_never_reaches_the_client(
+    tmp_path: Path, monkeypatch, one_place: dict
+) -> None:
+    """`ge=1` on `place_count` is the whole difference between a chip screen and a wall of dead buttons."""
+    seed = write_seed(tmp_path, [dict(one_place, tags=["culture"])])
+    monkeypatch.setattr(catalog_module, "DATA_FILE", seed)
+    invalidate_cache()
+    found = chip_summaries(load_places())
+    assert [chip.id for chip in found] == ["culture"], "пустой чип обязан отвалить, а не приехать с нулём"
+    assert found[0].place_count == 1
 
 
 def test_a_missing_seed_file_is_a_catalog_error(tmp_path: Path, monkeypatch) -> None:
