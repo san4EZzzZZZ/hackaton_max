@@ -72,11 +72,24 @@ class Location(ApiModel):
     lon: float = Field(..., ge=-180, le=180, description="Долгота")
 
 
+# «Чем хочешь заняться?» is not a category: кофейня остаётся кофейней по типу, но берётся в подборку
+# за кофе. Словарь закрыт — только так /chips может обещать ненулевой счётчик у каждого чипа, а
+# опечатка в теге не превращается в молча расширенный фильтр.
+TagId = Literal["coffee", "culture", "walk", "food", "photo"]
+
+
 class Place(ApiModel):
     id: str = Field(..., description="Уникальный идентификатор места")
     title: str = Field(..., description="Название места или события")
     description: str | None = Field(None, description="Краткое описание")
     category: str = Field(..., description="Категория объекта, см. GET /categories")
+    tags: list[TagId] = Field(
+        default_factory=list,
+        description=(
+            "Зачем сюда идут: кофе, культура, прогулка, перекус, фото. id те же, что у `Chip.id` "
+            "в GET /chips; пустой список — место вне настроенческих подборок"
+        ),
+    )
     location: Location
     address: str | None = Field(None, description="Адрес")
     city: str = Field("Ростов-на-Дону", description="Город")
@@ -97,6 +110,25 @@ class CitySummary(ApiModel):
     city: str = Field(..., description="Название города")
     place_count: int = Field(..., ge=1, description="Число объектов в этом городе")
     categories: list[str] = Field(..., description="Категории этих объектов")
+
+
+class Chip(ApiModel):
+    """Один чип «Чем хочешь заняться?» — вместе с тем, что под него действительно лежит."""
+
+    id: TagId = Field(..., description="Идентификатор чипа; его клиент и шлёт в `tags` запроса маршрута")
+    label: str = Field(..., description="Подпись на чипе")
+    emoji: str = Field(..., description="Значок чипа")
+    tags: list[TagId] = Field(
+        ..., description="Метки мест, которые выбирает чип; их пересечение с `Place.tags` непусто"
+    )
+    place_count: int = Field(
+        ...,
+        ge=1,
+        description=(
+            "Сколько мест каталога подходят под чип. Нуля здесь не бывает: чип, на котором нечего "
+            "показать, до клиента не доезжает, а не приезжает пустым"
+        ),
+    )
 
 
 # «Справка по пути»: текст пишет редактор в data/place_guides.json, всё остальное приходит из каталога.
@@ -263,6 +295,14 @@ class RouteRequest(ApiModel):
         ..., min_length=2, description="Город; допускается краткая форма — «Ростов»"
     )
     categories: list[str] = Field(default_factory=list, description="Фильтр по категориям")
+    tags: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Фильтр по настроению: id из GET /chips. Внутри списка — ИЛИ (место годится, если у него "
+            "есть хотя бы одна из запрошенных меток), между `tags` и `categories` — И. Пустой список "
+            "ничего не ограничивает, а неизвестный id не находит мест и даёт 404 — как категория"
+        ),
+    )
     max_budget: float | None = Field(
         None,
         ge=0,
@@ -272,7 +312,9 @@ class RouteRequest(ApiModel):
     is_pushkin_card_only: bool = Field(False, description="Только места по Пушкинской карте")
     duration_hours: float = Field(4.0, gt=0, le=12, description="Желаемая длительность, ч.")
 
-    @field_validator("categories")
+    # Deliberately not `list[TagId]`: a typo here must answer 404 «нечего собирать», как это делает
+    # неизвестная категория, а не 422 со списком ошибок — два фильтра одной оси не различаются кодами.
+    @field_validator("categories", "tags")
     @classmethod
     def _drop_blanks(cls, value: list[str]) -> list[str]:
         return [item.strip() for item in value if item.strip()]

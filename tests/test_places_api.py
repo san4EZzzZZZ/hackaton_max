@@ -29,7 +29,7 @@ def test_places_answers_a_bare_array_of_every_known_object(client: TestClient, p
     assert response.status_code == 200
     assert isinstance(response.json(), list), "the envelope shape is part of the published contract"
     assert len(response.json()) == len(places) >= 1, "the fixture and the endpoint must read the same file"
-    assert {"id", "title", "category", "location", "city", "price"} <= set(response.json()[0])
+    assert {"id", "title", "category", "tags", "location", "city", "price"} <= set(response.json()[0])
 
 
 def test_place_filters_narrow_the_same_collection(client: TestClient, places: list[dict]) -> None:
@@ -87,6 +87,25 @@ def test_categories_are_the_ones_the_data_actually_has(client: TestClient, place
     assert response.json() == list(dict.fromkeys(item["category"] for item in places))
 
 
+def test_tags_on_a_place_are_ids_the_chip_screen_can_ask_for(
+    client: TestClient, places: list[dict]
+) -> None:
+    """`Place.tags` and `Chip.id` are one vocabulary, or the filter the screen sends matches nothing.
+
+    The counts come from `/chips` rather than from a literal list in here: adding a chip without
+    teaching the data to use it should fail at the chip, not at this test.
+    """
+    chips = client.get("/api/v1/chips").json()
+    declared = {chip["id"] for chip in chips}
+    tagged = [item for item in places if item["tags"]]
+    assert len(tagged) >= 0.9 * len(places), "разметка есть у 90 % мест — иначе чипы декорация"
+    for item in tagged:
+        assert set(item["tags"]) <= declared, item["id"]
+    for chip in chips:
+        counted = sum(1 for item in places if set(item["tags"]) & set(chip["tags"]))
+        assert counted == chip["place_count"], chip["id"]
+
+
 @pytest.mark.parametrize(
     "path",
     [
@@ -94,6 +113,7 @@ def test_categories_are_the_ones_the_data_actually_has(client: TestClient, place
         f"{PLACES}/theatre-square",
         CATEGORIES,
         CITIES,
+        "/api/v1/chips",
         "/api/v1/routes/generate",
         # Both guide screens read the catalog too: the index pairs a guide with its place, and the
         # guide answer echoes price and opening hours out of it.
@@ -113,11 +133,19 @@ def test_an_unreadable_catalog_reports_503_rather_than_500(tmp_path: Path, monke
 
 
 def test_a_search_word_reaches_the_text_a_visitor_reads(client: TestClient) -> None:
-    # "фонтан" appears in no title — it lives in the description of Театральная площадь.
-    found = client.get(PLACES, params={"q": "фонтан"})
+    # "кувшином" is in no title, no category and no city — it only exists inside the description of
+    # Театральная площадь, which is what makes this a test of description search rather than of names.
+    found = client.get(PLACES, params={"q": "кувшином"})
     assert found.status_code == 200
     assert [item["id"] for item in found.json()] == ["theatre-square"]
     assert found.headers["X-Total-Count"] == "1"
+
+    # «фонтан» stopped being unique when the catalog gained the fountain on the same square (#36): the
+    # word matches the description of one record and the title of the other, in file order.
+    assert [item["id"] for item in client.get(PLACES, params={"q": "фонтан"}).json()] == [
+        "theatre-square",
+        "atlanty-fountain",
+    ]
 
 
 def test_search_words_narrow_instead_of_broadening(client: TestClient) -> None:

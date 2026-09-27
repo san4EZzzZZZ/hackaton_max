@@ -5,12 +5,14 @@ from __future__ import annotations
 import json
 import logging
 import re
+from collections.abc import Iterable, Sequence
 from functools import lru_cache
 from pathlib import Path
+from typing import NamedTuple
 
 from pydantic import ValidationError
 
-from server.schemas import Place
+from server.schemas import Chip, Place
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +73,64 @@ def invalidate_cache() -> None:
 def known_categories() -> tuple[str, ...]:
     """Categories the seed data actually contains, in catalog order."""
     return tuple(dict.fromkeys(place.category for place in load_places()))
+
+
+class ChipSpec(NamedTuple):
+    """One mood chip of the setup screen: what it is called and which tags answer it."""
+
+    id: str
+    label: str
+    emoji: str
+    tags: tuple[str, ...]
+
+
+# Порядок объявления — это порядок чипов на экране. `tags` списком, а не строкой: «Культура» завтра
+# сможет выбрать ещё и `photo`, и контракт менять не придётся.
+CHIPS: tuple[ChipSpec, ...] = (
+    ChipSpec(id="coffee", label="Взять кофе", emoji="☕", tags=("coffee",)),
+    ChipSpec(id="culture", label="Культура", emoji="🏛", tags=("culture",)),
+    ChipSpec(id="walk", label="Погулять в парке", emoji="🌳", tags=("walk",)),
+    ChipSpec(id="food", label="Перекусить", emoji="🍕", tags=("food",)),
+    ChipSpec(id="photo", label="Красивые фото", emoji="📸", tags=("photo",)),
+)
+
+
+def normalize_tags(values: Iterable[str]) -> set[str]:
+    """Tags as the planner compares them: trimmed, lowercased, blanks gone."""
+    return {value.strip().lower() for value in values if value.strip()}
+
+
+def has_any_tag(place: Place, wanted: set[str]) -> bool:
+    """Whether a place answers a set of requested tags — ИЛИ внутри набора, пустой набор не фильтрует.
+
+    Одна функция на `/chips` и на `filter_candidates`: счётчик чипа и реальный подбор не могут
+    разойтись, как не разошлись минуты перехода в справке.
+    """
+    return not wanted or bool(wanted & normalize_tags(place.tags))
+
+
+def chip_summaries(places: Sequence[Place]) -> tuple[Chip, ...]:
+    """Чипы, которые данным каталога есть чем наполнить, в порядке объявления.
+
+    Spec без хоть одного подходящего места выбрасывается, а не возвращается с нулём: тогда клиент
+    рисует ответ как есть и не держит у себя список «настоящих» чипов — именно из-за такого списка
+    экран настройки обещал кофе там, где его искать было нечего.
+    """
+    chips: list[Chip] = []
+    for spec in CHIPS:
+        wanted = normalize_tags(spec.tags)
+        count = sum(1 for place in places if has_any_tag(place, wanted))
+        if count:
+            chips.append(
+                Chip(
+                    id=spec.id,
+                    label=spec.label,
+                    emoji=spec.emoji,
+                    tags=list(spec.tags),
+                    place_count=count,
+                )
+            )
+    return tuple(chips)
 
 
 def known_cities() -> dict[str, list[Place]]:
