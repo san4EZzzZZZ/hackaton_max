@@ -8,10 +8,13 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
-# `data/*` (not `data/`) so places.json can be re-included: the seed file must ship in the
-# image, while the local SQLite db/wal files next to it must not.
+# `data/*` (not `data/`) so the seed files can be re-included one by one: they must ship in the image,
+# while the local SQLite db/wal files next to them must not. Every file a loader reads has to be named
+# here — a forgotten line is not a build error, it is a 503 in production. `tests/test_packaging.py`
+# checks the list against the loaders.
 data/*
 !data/places.json
+!data/place_guides.json
 *.db
 *.db-wal
 *.db-shm
