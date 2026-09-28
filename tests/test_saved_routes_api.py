@@ -62,6 +62,24 @@ def test_a_route_saved_before_the_aggregates_existed_is_still_readable(client: T
     assert stored["route"]["total_distance_m"] == 0
 
 
+def test_a_saved_route_keeps_where_it_began(client: TestClient) -> None:
+    """The start lives in the stored payload, so the map can redraw it after a restart.
+
+    Nothing here needed a column: a route is kept as the generator's JSON, which is exactly why a new
+    response field is free to add — and equally why a payload written by an older build still reads back.
+    """
+    start = {"lat": 47.22, "lon": 39.72}
+    route = generated(client, start_lat=start["lat"], start_lon=start["lon"])
+    assert route["start"] == start, "the generator itself has to echo the origin before storing it"
+
+    stored = save(client, route)
+    assert stored["route"]["start"] == start
+    assert stored["route"]["stops"][0]["distance_m_from_prev"] > 0, "the head hop is part of the payload"
+
+    fetched = client.get(f"{ROUTES}/{stored['route_id']}").json()
+    assert fetched["route"] == route
+
+
 def test_the_row_survives_a_restart(client: TestClient) -> None:
     """The point of the whole endpoint: an in-memory store would pass every other test here and fail."""
     with app_client() as first:

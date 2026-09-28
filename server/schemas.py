@@ -311,6 +311,20 @@ class RouteRequest(ApiModel):
     )
     is_pushkin_card_only: bool = Field(False, description="Только места по Пушкинской карте")
     duration_hours: float = Field(4.0, gt=0, le=12, description="Желаемая длительность, ч.")
+    start_lat: float | None = Field(
+        None,
+        ge=-90,
+        le=90,
+        description=(
+            "Широта точки, из которой начинают прогулку, deg — вместе с `start_lon`. Без неё маршрут "
+            "строится как раньше: первой точкой планировщика, без перехода к ней. С ней первые "
+            "`travel_minutes_from_prev` и `distance_m_from_prev` считаются от старта и съедают бюджет "
+            "времени, а слишком далёкие места до фильтрации не доходят"
+        ),
+    )
+    start_lon: float | None = Field(
+        None, ge=-180, le=180, description="Долгота точки старта, deg — вместе с `start_lat`"
+    )
 
     # Deliberately not `list[TagId]`: a typo here must answer 404 «нечего собирать», как это делает
     # неизвестная категория, а не 422 со списком ошибок — два фильтра одной оси не различаются кодами.
@@ -318,6 +332,21 @@ class RouteRequest(ApiModel):
     @classmethod
     def _drop_blanks(cls, value: list[str]) -> list[str]:
         return [item.strip() for item in value if item.strip()]
+
+    # Half a coordinate pair locates nothing, and silently ignoring the one half that arrived would be
+    # the same lie as an ignored `budget` — so 422, like `near_lat`/`near_lon` on GET /places.
+    @model_validator(mode="after")
+    def _start_is_a_pair(self) -> "RouteRequest":
+        if (self.start_lat is None) != (self.start_lon is None):
+            raise ValueError("start_lat и start_lon передают вместе: одна координата точку не задаёт")
+        return self
+
+    @property
+    def start(self) -> Location | None:
+        """The walk's origin as the engine wants it: a `Location` or nothing at all."""
+        if self.start_lat is None or self.start_lon is None:
+            return None
+        return Location(lat=self.start_lat, lon=self.start_lon)
 
 
 class RouteStop(ApiModel):
@@ -331,16 +360,18 @@ class RouteStop(ApiModel):
         0,
         ge=0,
         description=(
-            "Переход от предыдущей точки, мин. Оценка планировщика (пеший ход плюс запас на "
-            "ожидание), а не ETA навигатора: путь по тротуарам всегда дольше"
+            "Переход от предыдущей точки, мин; у первой точки — от `start` запроса, или 0, если старта "
+            "не было. Оценка планировщика (пеший ход плюс запас на ожидание), а не ETA навигатора: путь "
+            "по тротуарам всегда дольше"
         ),
     )
     distance_m_from_prev: int = Field(
         0,
         ge=0,
         description=(
-            "Расстояние от предыдущей точки по прямой, м; у первой точки 0. Длина тротуарного обхода "
-            "всегда больше, поэтому подпись «N км пешком» честнее читать «N км напрямую»"
+            "Расстояние от предыдущей точки по прямой, м; у первой точки — от точки старта, если она "
+            "передана, иначе 0. Длина тротуарного обхода всегда больше, поэтому подпись «N км пешком» "
+            "честнее читать «N км напрямую»"
         ),
     )
 
@@ -349,7 +380,14 @@ class RouteResponse(ApiModel):
     route_id: str
     title: str
     city: str
-    total_duration_hours: float = Field(..., ge=0, description="Визиты и переходы между точками")
+    # Echoed rather than left in the request: a saved route comes back through GET /routes without its
+    # request, and the map needs the start to draw its marker and to explain the first hop.
+    start: Location | None = Field(
+        None, description="Точка старта из запроса; None, если старт не передавали"
+    )
+    total_duration_hours: float = Field(
+        ..., ge=0, description="Визиты и переходы между точками, включая переход от старта к первой точке"
+    )
     total_duration_minutes: int = Field(
         0,
         ge=0,
@@ -358,7 +396,10 @@ class RouteResponse(ApiModel):
     total_distance_m: int = Field(
         0,
         ge=0,
-        description="Сумма прямых расстояний между соседними точками, м",
+        description=(
+            "Сумма прямых расстояний между соседними точками, м, включая отрезок от старта до первой "
+            "точки"
+        ),
     )
     slack_minutes: int | None = Field(
         None,

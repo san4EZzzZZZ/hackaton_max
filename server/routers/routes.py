@@ -42,6 +42,7 @@ async def generate_route(request: RouteRequest) -> RouteResponse:
         route_id=str(uuid.uuid4()),
         title=f"Маршрут выходного дня: {request.city}",
         city=request.city,
+        start=request.start,
         total_duration_hours=round(total_minutes / 60, 2),
         total_duration_minutes=total_minutes,
         slack_minutes=max(0, int(request.duration_hours * 60) - total_minutes),

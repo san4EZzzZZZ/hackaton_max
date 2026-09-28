@@ -27,11 +27,21 @@ from server.routing import (
     optimize_order,
     travel_minutes,
     within_radius_km,
+    _chain_minutes,
     _final_key,
 )
 from server.schemas import Location, Place, RouteRequest, RouteStop
 
 CENTER = Location(lat=47.2222, lon=39.7185)
+
+# Where a walk begins is a second axis for the catalog-wide properties below. The origin is a corner of
+# the densest part of the catalog rather than one of its addresses, so a rule that only holds when the
+# visitor happens to stand on a door does not pass here.
+STARTS = [None, CENTER]
+
+
+def _start_id(start: Location | None) -> str:
+    return "без старта" if start is None else f"от {start.lat},{start.lon}"
 
 
 def place(
@@ -263,6 +273,88 @@ def test_the_wider_walk_wins_when_the_stops_already_count_the_same() -> None:
     assert min([tight, wide], key=_final_key) is wide
 
 
+def test_the_start_is_a_cost_in_time_not_a_label() -> None:
+    """The same two stops are affordable or not depending on where the visitor begins."""
+    pair = [
+        place("cafe", lat=47.22, lon=39.72, minutes=60),
+        place("museum", lat=47.22, lon=39.723, minutes=60),
+    ]
+    at_the_door = Location(lat=47.22, lon=39.72)
+    across_the_river = Location(lat=47.30, lon=39.72)
+
+    assert admissible(pair, time_budget=200, budget=None, start=at_the_door) is True
+    assert admissible(pair, time_budget=200, budget=None, start=across_the_river) is False
+
+
+def test_a_place_the_visitor_cannot_walk_to_in_time_is_not_a_candidate() -> None:
+    """The direct hop is the cheapest arrival there is, so a place beyond it can never be in the answer."""
+    near = place("near", lat=47.2205, lon=39.7205, minutes=30)
+    far = place("far", lat=47.35, lon=39.72, minutes=30)
+    with_start = filter_candidates(
+        [near, far], request(duration_hours=2, start_lat=47.22, start_lon=39.72)
+    )
+    without_start = filter_candidates([near, far], request(duration_hours=2))
+
+    assert [candidate.place.id for candidate in with_start] == ["near"]
+    assert [candidate.place.id for candidate in without_start] == ["near", "far"], (
+        "the far place is a perfectly good stop while the walk has no origin"
+    )
+
+
+def test_the_walk_begins_with_the_stop_nearest_the_visitor() -> None:
+    """Three places in a row and the visitor at one end: the chain has to start at that end.
+
+    Without a start both directions of the same set cost the same, so nothing in the ranking decides
+    between them; the head hop breaks the tie, and it is also what makes the far end unaffordable here.
+    """
+    line = [place(f"p{index}", lat=47.229 + 0.009 * index, lon=39.72, minutes=20) for index in range(3)]
+    start = Location(lat=47.22, lon=39.72)
+    payload = request(duration_hours=2, start_lat=start.lat, start_lon=start.lon)
+
+    stops, minutes, _cost = assemble_route(filter_candidates(line, payload), payload)
+
+    assert [stop.place.id for stop in stops] == ["p0", "p1", "p2"]
+    head = travel_minutes(start, line[0].location)
+    assert stops[0].travel_minutes_from_prev == head > 0
+    assert stops[0].arrival_offset_minutes == head
+    assert stops[0].distance_m_from_prev == round(haversine_km(start, line[0].location) * 1000) > 0
+    assert minutes == head + sum(item.visit_duration_minutes for item in line) + travel_chain(line)
+
+
+def test_the_start_is_not_a_stop_for_the_spacing_rule() -> None:
+    """Standing in front of the object you asked to be taken to is the point of a start, not a duplicate."""
+    doorstep = place("doorstep", lat=47.2201, lon=39.7201, minutes=20)
+    opposite = place("opposite", lat=47.2201, lon=39.7226, minutes=20)
+    payload = request(duration_hours=2, start_lat=47.22, start_lon=39.72)
+
+    stops, _minutes, _cost = assemble_route(filter_candidates([doorstep, opposite], payload), payload)
+
+    # Thirteen metres from the start: counted as a stop of its own, not as the start repeated.
+    assert [stop.place.id for stop in stops] == ["doorstep", "opposite"]
+
+
+def test_the_start_lets_the_order_move_the_first_stop_too() -> None:
+    """With an origin, 2-opt is allowed to reverse from position 0; without one it is not.
+
+    Both facts need pinning. The reversal is worth a stop on the real catalog — a walk starting north of
+    the center gets six places for four hours instead of five — and it is only legitimate because the
+    head of the chain is now the visitor rather than a place the search chose for itself.
+    """
+    near = place("near", lat=47.22, lon=39.72, minutes=20)
+    middle = place("middle", lat=47.23, lon=39.72, minutes=20)
+    far = place("far", lat=47.24, lon=39.72, minutes=20)
+    backwards = [far, middle, near]
+    start = Location(lat=47.22, lon=39.72)
+
+    with_origin = optimize_order(backwards, start)
+    assert [p.id for p in with_origin] == ["near", "middle", "far"]
+    assert _chain_minutes(with_origin, start) < _chain_minutes(backwards, start)
+
+    # The same three stops with no origin: the first place is the search's own choice and stays put, so
+    # the chain keeps walking away from the visitor and back.
+    assert [p.id for p in optimize_order(backwards)] == ["far", "middle", "near"]
+
+
 def test_the_timeline_numbers_stops_and_accumulates_transfers() -> None:
     # About three kilometres apart: on foot that is a real transfer of under an hour, which a
     # four-hour walk can afford. It used to be ten times further, back when transfers were driven.
@@ -315,25 +407,35 @@ def catalog() -> list[Place]:
 
 
 def walk(
-    hours: float, categories: list[str] | None = None, tags: list[str] | None = None
+    hours: float,
+    categories: list[str] | None = None,
+    tags: list[str] | None = None,
+    start: Location | None = None,
 ) -> tuple[list[RouteStop], int, float]:
-    payload = request(duration_hours=hours, categories=categories or [], tags=tags or [])
+    origin = {} if start is None else {"start_lat": start.lat, "start_lon": start.lon}
+    payload = request(duration_hours=hours, categories=categories or [], tags=tags or [], **origin)
     return assemble_route(filter_candidates(catalog(), payload), payload)
 
 
-def occupied(route: list[Place]) -> int:
+def occupied(route: list[Place], start: Location | None = None) -> int:
     """Visits plus transfers, in the given order — the same arithmetic the engine budgets against."""
-    return sum(item.visit_duration_minutes for item in route) + travel_chain(route)
+    chain = sum(item.visit_duration_minutes for item in route) + travel_chain(route)
+    return chain if start is None else chain + travel_minutes(start, route[0].location)
 
 
+# Where the walk begins is a second axis of the same property: an origin costs the first segment, and a
+# longer day must still never return fewer places than a shorter one.
+@pytest.mark.parametrize("start", STARTS, ids=_start_id)
 @pytest.mark.parametrize("categories", CATEGORY_SETS, ids=lambda value: "+".join(value) or "все")
-def test_more_time_never_means_a_shorter_walk(categories: list[str]) -> None:
+def test_more_time_never_means_a_shorter_walk(
+    categories: list[str], start: Location | None
+) -> None:
     previous_hours, previous_stops = DURATIONS[0], 0
     for hours in DURATIONS:
-        stops, _minutes, _cost = walk(hours, categories)
+        stops, _minutes, _cost = walk(hours, categories, start=start)
         assert len(stops) >= previous_stops, (
-            f"{categories or 'all categories'}: {hours} h returns {len(stops)} stops, "
-            f"{previous_hours} h returned {previous_stops}"
+            f"{categories or 'all categories'} from {start or 'no origin'}: {hours} h returns "
+            f"{len(stops)} stops, {previous_hours} h returned {previous_stops}"
         )
         previous_hours, previous_stops = hours, len(stops)
 
@@ -395,13 +497,25 @@ def test_an_or_list_of_tags_widens_the_way_the_chip_screen_reads_it() -> None:
     assert single < joined, "второй тег обязан добавлять места, а не требовать оба сразу"
 
 
-def test_the_requests_the_mini_app_opens_with_are_measured_in_stops() -> None:
+@pytest.mark.parametrize("start", STARTS, ids=_start_id)
+def test_the_requests_the_mini_app_opens_with_are_measured_in_stops(
+    start: Location | None
+) -> None:
     # The old engine gave 1 / 2 / 3 / 2 here, and one hour was a single stop because of geography:
     # the two nearest objects were a 13-minute walk apart, so 25 + 13 + 25 = 63 minutes does not fit
     # in 60. Filling the center (#32) is what made an hour worth two places instead of one.
-    for hours, floor in ((1.0, 2), (2.0, 3), (3.0, 4), (4.0, 6)):
-        stops, minutes, _cost = walk(hours)
-        assert len(stops) >= floor, f"{hours} h assembled only {len(stops)} stops ({minutes} min occupied)"
+    #
+    # From an origin the first hour is the one cell that changes, and it changes for the same
+    # geographic reason: 12 of its 60 minutes go before any stop (732 m to the nearest door), which
+    # leaves 30 for the visit and not enough for the 150 m and the next visit on top of it. Two hours
+    # and up are the promise the screen sells, and they hold either way.
+    floors = ((1.0, 2 if start is None else 1), (2.0, 3), (3.0, 4), (4.0, 6))
+    for hours, floor in floors:
+        stops, minutes, _cost = walk(hours, start=start)
+        assert len(stops) >= floor, (
+            f"{hours} h from {start or 'no origin'} assembled only {len(stops)} stops "
+            f"({minutes} min occupied)"
+        )
 
 
 def test_a_day_longer_than_the_search_cap_is_still_filled() -> None:
@@ -418,25 +532,33 @@ def test_a_day_longer_than_the_search_cap_is_still_filled() -> None:
     assert minutes <= 12 * 60
 
 
-def test_nothing_that_would_have_fit_is_left_behind() -> None:
-    # Position 0 is deliberately not treated as a gap: the place the walk starts at is the search's
-    # decision, and the fill pass must not undo it. Checked against the engine's own predicate rather
-    # than the time arithmetic, because a left-out place can now be excluded by spacing as well.
+# Where the walk begins changes which gaps are real: with an origin the first stop is chosen for that
+# point, so position 0 becomes a legal gap and the head hop has to be paid for by every candidate.
+@pytest.mark.parametrize("start", STARTS, ids=_start_id)
+def test_nothing_that_would_have_fit_is_left_behind(start: Location | None) -> None:
+    # Without an origin, position 0 is deliberately not treated as a gap: the place the walk starts at is
+    # the search's decision, and the fill pass must not undo it. Checked against the engine's own
+    # predicate rather than the time arithmetic, because a left-out place can now be excluded by spacing
+    # as well as by the clock — and this is what proves `_fill_gaps` consults the same rules.
     for hours, categories in product(DURATIONS, CATEGORY_SETS):
-        stops, _minutes, _cost = walk(hours, categories)
+        stops, _minutes, _cost = walk(hours, categories, start=start)
         order = [stop.place for stop in stops]
         chosen = {stop.place.id for stop in stops}
         budget = int(hours * 60)
+        origin = {} if start is None else {"start_lat": start.lat, "start_lon": start.lon}
         # No money cap in these requests, so time and spacing alone decide whether a gap was real.
-        candidates = filter_candidates(catalog(), request(duration_hours=hours, categories=categories))
+        candidates = filter_candidates(
+            catalog(), request(duration_hours=hours, categories=categories, **origin)
+        )
         for candidate in candidates:
             if candidate.place.id in chosen:
                 continue
-            for index in range(1, len(order) + 1):
+            for index in range(0 if start else 1, len(order) + 1):
                 gap = [*order[:index], candidate.place, *order[index:]]
-                assert not admissible(gap, budget, None), (
-                    f"{hours} h {categories}: {candidate.place.id} was admissible at position {index} — "
-                    f"{occupied(gap)} min of a {budget} min budget"
+                assert not admissible(gap, budget, None, start), (
+                    f"{hours} h {categories} {'' if start is None else f'from {start.lat},{start.lon}'}: "
+                    f"{candidate.place.id} was admissible at position {index} — "
+                    f"{occupied(gap, start)} min of a {budget} min budget"
                 )
 
 
