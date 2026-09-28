@@ -11,21 +11,11 @@ const ROSTOV_CENTER = [39.72, 47.235]
 // Vite's dep-optimizer breaks maplibre's default worker URL resolution.
 setWorkerUrl(maplibreWorker)
 
-function routeDistanceKm(stops) {
-  let km = 0
-  for (let i = 1; i < stops.length; i += 1) {
-    const a = stops[i - 1].place.location
-    const b = stops[i].place.location
-    const dLat = (((b.lat - a.lat) * Math.PI) / 180)
-    const dLon = (((b.lon - a.lon) * Math.PI) / 180)
-    const s =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos((a.lat * Math.PI) / 180) *
-        Math.cos((b.lat * Math.PI) / 180) *
-        Math.sin(dLon / 2) ** 2
-    km += 12742 * Math.asin(Math.sqrt(s))
-  }
-  return km
+function formatDistance(meters) {
+  // 950 m — порог, ниже которого «км» округлились бы в «0.0»: маршрут из двух кофеен рядом
+  // выглядел бы нулевым. Выше порога те же значения округляются до «1.0 км».
+  if (meters < 950) return `${Math.round(meters / 50) * 50} м`
+  return `${(meters / 1000).toFixed(1)} км`
 }
 
 function formatHours(minutes) {
@@ -37,7 +27,7 @@ function formatHours(minutes) {
 export default function RouteResultScreen({ route, onEdit }) {
   const mapRef = useRef(null)
   const totalMinutes = Math.round(route.total_duration_hours * 60)
-  const distanceKm = routeDistanceKm(route.stops)
+  const distanceLabel = formatDistance(route.total_distance_m)
 
   useEffect(() => {
     const map = new GlMap({
@@ -125,7 +115,7 @@ export default function RouteResultScreen({ route, onEdit }) {
           <div className={styles.stats}>
             <span className={styles.statMain}>{formatHours(totalMinutes)}</span>
             <span className={styles.statSub}>
-              {distanceKm.toFixed(1)} км • {route.stops.length}{' '}
+              {distanceLabel} • {route.stops.length}{' '}
               {route.stops.length === 1 ? 'точка' : route.stops.length < 5 ? 'точки' : 'точек'}
             </span>
           </div>
