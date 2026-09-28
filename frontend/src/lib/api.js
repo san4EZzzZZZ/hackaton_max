@@ -37,6 +37,8 @@ async function request(path, options = {}) {
 
 export const api = {
   listCategories: () => request('/categories'),
+  listChips: (city) =>
+    request(`/chips${city ? `?city=${encodeURIComponent(city)}` : ''}`),
   generateRoute: (payload) =>
     request('/routes/generate', { method: 'POST', body: JSON.stringify(payload) }),
 }

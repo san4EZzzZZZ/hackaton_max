@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import PrimaryButton from '../components/PrimaryButton.jsx'
 import {
   ArrowLeftIcon,
@@ -29,29 +29,38 @@ const START_LABELS = {
   geo: 'Текущая геопозиция',
 }
 
-// Чипы из Frame 2 — настроения, а не категории каталога; на сабмите
-// каждый маппится на реальные категории бэкенда.
-const CHIPS = [
-  { emoji: '☕', label: 'Взять кофе', categories: [] },
-  {
-    emoji: '🏛️',
-    label: 'Культура',
-    categories: ['Театр', 'Архитектура', 'Памятник', 'Галерея', 'Музей'],
-  },
-  { emoji: '🌳', label: 'Погулять в парке', categories: ['Парк'] },
-  { emoji: '🍕', label: 'Перекусить', categories: [] },
-  { emoji: '📸', label: 'Красивые фото', categories: [] },
-]
+const CITY = 'Ростов-на-Дону'
 
 export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
   const [duration, setDuration] = useState(initial?.duration ?? 2)
-  const [selected, setSelected] = useState(initial?.categories ?? [])
+  const [selected, setSelected] = useState(initial?.tags ?? [])
+  const [chips, setChips] = useState([])
+  const [chipsError, setChipsError] = useState(null)
   const [start, setStart] = useState('geo')
   const [sheetOpen, setSheetOpen] = useState(false)
   const [draftStart, setDraftStart] = useState('geo')
   const [query, setQuery] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
+
+  useEffect(() => {
+    let active = true
+    const load = async () => {
+      try {
+        const data = await api.listChips(CITY)
+        if (active) {
+          setChips(data)
+          setChipsError(null)
+        }
+      } catch (error) {
+        if (active) setChipsError(error)
+      }
+    }
+    load()
+    return () => {
+      active = false
+    }
+  }, [])
 
   const openSheet = () => {
     setDraftStart(start)
@@ -64,9 +73,9 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
     setSheetOpen(false)
   }
 
-  const toggleChip = (label) => {
+  const toggleChip = (id) => {
     setSelected((prev) =>
-      prev.includes(label) ? prev.filter((item) => item !== label) : [...prev, label],
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     )
   }
 
@@ -81,16 +90,13 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
   const handleSubmit = async () => {
     setSubmitting(true)
     setSubmitError(null)
-    const picked = CHIPS.filter((chip) => selected.includes(chip.label)).flatMap(
-      (chip) => chip.categories,
-    )
     try {
       await onSubmit({
         duration,
-        categories: selected,
+        tags: selected,
         route: await api.generateRoute({
-          city: 'Ростов-на-Дону',
-          categories: picked,
+          city: CITY,
+          tags: selected,
           duration_hours: duration,
         }),
       })
@@ -134,22 +140,30 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
 
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Чем хочешь заняться?</h2>
-          <div className={styles.chips}>
-            {CHIPS.map(({ emoji, label }) => (
-              <button
-                key={label}
-                type="button"
-                aria-pressed={selected.includes(label)}
-                className={`${styles.chip} ${selected.includes(label) ? styles.chipActive : ''}`}
-                onClick={() => toggleChip(label)}
-              >
-                <span className={styles.chipEmoji} aria-hidden="true">
-                  {emoji}
-                </span>
-                {label}
-              </button>
-            ))}
-          </div>
+          {chipsError ? (
+            <p className={styles.submitError} role="alert">
+              Не удалось загрузить варианты занятий.
+            </p>
+          ) : chips.length === 0 ? (
+            <p className={styles.subtitle}>Загружаем варианты…</p>
+          ) : (
+            <div className={styles.chips}>
+              {chips.map(({ id, emoji, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={selected.includes(id)}
+                  className={`${styles.chip} ${selected.includes(id) ? styles.chipActive : ''}`}
+                  onClick={() => toggleChip(id)}
+                >
+                  <span className={styles.chipEmoji} aria-hidden="true">
+                    {emoji}
+                  </span>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className={styles.startCard}>
