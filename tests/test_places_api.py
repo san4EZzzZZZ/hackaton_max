@@ -106,6 +106,112 @@ def test_tags_on_a_place_are_ids_the_chip_screen_can_ask_for(
         assert counted == chip["place_count"], chip["id"]
 
 
+def test_the_number_a_chip_promises_is_the_list_places_sells(
+    client: TestClient, places: list[dict]
+) -> None:
+    """`?tag=` is the same axis `/chips` counts and the planner filters — one predicate, three screens.
+
+    The chip screen says «☕ 5», the list behind it has to hold five cards, and the walk it generates
+    has to visit those five. The assertion reads its numbers out of `/chips` so a new chip cannot be
+    added as a promise nobody kept.
+    """
+    for chip in client.get("/api/v1/chips").json():
+        response = client.get(PLACES, params={"tag": chip["id"]})
+        assert response.status_code == 200, chip["id"]
+        found = response.json()
+        assert len(found) == chip["place_count"], chip["id"]
+        assert response.headers["X-Total-Count"] == str(chip["place_count"]), chip["id"]
+        for item in found:
+            assert set(item["tags"]) & set(chip["tags"]), (chip["id"], item["id"])
+        expected = [
+            item["id"]
+            for item in places
+            if set(item["tags"]) & set(chip["tags"])
+        ]
+        assert [item["id"] for item in found] == expected, "the tag filter keeps catalog order"
+
+
+def test_several_tags_in_one_url_widen_the_way_the_chip_screen_reads_them(
+    client: TestClient, places: list[dict]
+) -> None:
+    """Several tags are ИЛИ: a visitor who wants coffee or a bite gets both lists, not their gap."""
+    wanted = ["coffee", "food"]
+    joined = client.get(PLACES, params={"tag": wanted})
+    assert joined.status_code == 200
+    single = [set(ids(client.get(PLACES, params={"tag": tag}))) for tag in wanted]
+    assert set(ids(joined)) == single[0] | single[1], "ИЛИ, а не пересечение"
+    assert len(joined.json()) >= max(len(s) for s in single)
+    for item in joined.json():
+        assert set(item["tags"]) & set(wanted), item["id"]
+
+
+def test_tag_and_category_narrow_together_instead_of_one_replacing_the_other(
+    client: TestClient,
+) -> None:
+    """Театр — это «что это», фото — «зачем туда идут»: пересечение обязано быть уже каждой стороны.
+
+    Памятник без снимка из этой выборки выпадает, а не перетягивает фильтр на себя: на категории,
+    где все места помечены одним тегом, сузить было бы нечем, и тест молча проверял бы подмену.
+    """
+    photo = set(ids(client.get(PLACES, params={"tag": "photo"})))
+    monuments = set(ids(client.get(PLACES, params={"category": "Памятник"})))
+    both = client.get(PLACES, params={"tag": "photo", "category": "Памятник"})
+    assert both.status_code == 200
+    combined = set(ids(both))
+    assert combined == photo & monuments, "две оси не должны превращаться в одну"
+    assert combined < photo and combined < monuments, "фильтр обязан сужать, а не переключаться"
+    for item in both.json():
+        assert item["category"] == "Памятник" and "photo" in item["tags"], item["id"]
+
+    # A combination with nothing under it is an empty collection, not a broken request — the walk
+    # screen answers 404 for the same dead end because there the route itself would not exist.
+    empty = client.get(PLACES, params={"tag": "coffee", "category": "Парк"})
+    assert empty.status_code == 200 and empty.json() == []
+
+
+def test_a_tag_typo_is_an_empty_shelf_rather_than_a_rejected_request(client: TestClient) -> None:
+    """Same behavior as `?category=nope`: a filter is a filter, whatever its vocabulary."""
+    unknown = client.get(PLACES, params={"tag": "no-such-mood"})
+    assert unknown.status_code == 200 and unknown.json() == []
+    assert (
+        client.get(PLACES, params={"category": "no-such-mood"}).json() == []
+    ), "the two axes must not differ in what a miss costs the caller"
+
+
+def test_a_tag_is_compared_the_way_the_chip_id_is_spelled(client: TestClient) -> None:
+    """Case and stray spaces are the caller's typographic problem, not a miss."""
+    full = client.get(PLACES, params={"tag": "culture"}).json()
+    assert full
+    assert client.get(PLACES, params={"tag": "CULTURE"}).json() == full
+    assert client.get(PLACES, params={"tag": "  culture  "}).json() == full
+
+    # An empty value drops out of the filter instead of selecting nothing: `?tag=` means «no mood
+    # chosen yet», and a screen that sends it must still see the catalog.
+    assert len(client.get(PLACES, params={"tag": " "}).json()) == len(client.get(PLACES).json())
+
+
+def test_a_tag_filter_leaves_pagination_and_radius_alone(client: TestClient) -> None:
+    """`limit` cuts the tail, the header still reports the whole shelf."""
+    total = client.get(PLACES, params={"tag": "photo"})
+    assert total.status_code == 200
+    page = client.get(PLACES, params={"tag": "photo", "limit": 3})
+    assert len(page.json()) == 3
+    assert page.headers["X-Total-Count"] == total.headers["X-Total-Count"]
+    assert page.json() == total.json()[:3]
+
+    # The center of the catalog's own cluster keeps the tag axis alive: «Перекусить» near Theatre
+    # Square has to answer with the cafés, not with a radius that quietly dropped them all.
+    food = set(ids(client.get(PLACES, params={"tag": "food"})))
+    center = client.get(f"{PLACES}/theatre-square").json()["location"]
+    nearby = client.get(
+        PLACES,
+        params={"tag": "food", "near_lat": center["lat"], "near_lon": center["lon"], "radius_km": 5},
+    )
+    assert nearby.status_code == 200
+    assert ids(nearby), "еда в шаговой доступности от площади — смысл чипа «Перекусить»"
+    assert set(ids(nearby)) <= food, "радиус может только урезать выборку по тегу"
+
+
 @pytest.mark.parametrize(
     "path",
     [
@@ -286,8 +392,12 @@ def test_cities_offers_only_what_the_catalog_can_show(client: TestClient, places
 
 def test_the_new_query_parameters_and_headers_are_documented(client: TestClient) -> None:
     spec = client.get("/openapi.json").json()
-    place_params = {parameter["name"] for parameter in spec["paths"][PLACES]["get"]["parameters"]}
+    parameters = spec["paths"][PLACES]["get"]["parameters"]
+    place_params = {parameter["name"] for parameter in parameters}
     assert {"q", "min_rating", "near_lat", "near_lon", "radius_km", "limit", "offset"} <= place_params
+    tag = next(parameter for parameter in parameters if parameter["name"] == "tag")
+    assert tag["schema"]["anyOf"][0]["type"] == "array", "the filter repeats in the URL"
+    assert "chips" in tag["description"], "the description has to name where the ids come from"
     headers = spec["paths"][PLACES]["get"]["responses"]["200"]["headers"]
     assert set(headers) == {"X-Total-Count", "X-Offset"}
     responses = spec["paths"][PLACES]["get"]["responses"]
