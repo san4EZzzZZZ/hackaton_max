@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 import random
-from itertools import product
+from itertools import combinations, product
 
 import pytest
 from pydantic import ValidationError
@@ -18,13 +18,16 @@ from server.catalog import load_places
 from server.routing import (
     FIXED_TRANSFER_MINUTES,
     MAX_SEARCH_STOPS,
+    MIN_SPACING_M,
     TRANSIT_KMH,
+    admissible,
     assemble_route,
     filter_candidates,
     haversine_km,
     optimize_order,
     travel_minutes,
     within_radius_km,
+    _final_key,
 )
 from server.schemas import Location, Place, RouteRequest, RouteStop
 
@@ -177,16 +180,22 @@ def test_a_landmark_worth_visiting_alone_does_not_eat_the_hour_it_blocks() -> No
 
     A step that appends the best value first starts at the landmark and then cannot pay for the walk to
     the cluster: one stop out of 60 minutes. Searching the cluster as a starting point returns three
-    stops in 51, which is what the hour was asking for.
+    stops in 57, which is what the hour was asking for.
     """
     landmark = place("landmark", rating=5.0, minutes=30, lat=47.235, lon=39.72)
-    cluster = [place(name, rating=4.0, minutes=15) for name in "abc"]
+    # A short step apart rather than three objects at one address, which the planner now reads as one
+    # place: this test is about the hour being spent on three stops, not about the spacing rule.
+    cluster = [
+        place(name, rating=4.0, minutes=15, lon=39.72 + 0.003 * index)
+        for index, name in enumerate("abc")
+    ]
     payload = request(duration_hours=1.0)
 
     stops, minutes, _cost = assemble_route(filter_candidates([landmark, *cluster], payload), payload)
 
     assert [stop.place.id for stop in stops] == ["a", "b", "c"]
-    assert minutes == 15 + 3 + 15 + 3 + 15, "three short visits and the two transfers between them"
+    step = travel_minutes(cluster[0].location, cluster[1].location)
+    assert minutes == 3 * 15 + 2 * step, "three short visits and the two transfers between them"
     assert travel_minutes(landmark.location, cluster[0].location) + 30 + 15 > 60, (
         "the scene itself: starting at the landmark does not fit into this hour"
     )
@@ -214,6 +223,44 @@ def test_short_chains_are_left_alone() -> None:
     pair = [place("a"), place("b")]
     assert optimize_order(pair) == pair
     assert optimize_order([]) == []
+
+
+def test_admission_rejects_one_address_before_it_rejects_the_clock() -> None:
+    """The three reasons a set of stops cannot be an answer, checked on the predicate itself.
+
+    `admissible` is what the search, the fill pass and the audits all consult, so a rule that only shows
+    up in a full run is a rule nobody can point at.
+    """
+    # 227 m apart: two objects at one address would be a third of this distance, and under the threshold.
+    apart = [place("cafe", lon=39.72, minutes=60), place("monument", lon=39.723, minutes=60)]
+    same_address = [place("cafe", lon=39.72, minutes=60), place("arcade", lon=39.7202, minutes=60)]
+    expensive = [
+        place("theatre", lon=39.72, minutes=60, price=400),
+        place("museum", lon=39.723, minutes=60, price=300),
+    ]
+
+    assert haversine_km(apart[0].location, apart[1].location) * 1000 > MIN_SPACING_M
+    assert admissible(apart, time_budget=600, budget=None) is True
+    assert admissible(same_address, time_budget=600, budget=None) is False
+    assert admissible(apart, time_budget=100, budget=None) is False
+    assert admissible(expensive, time_budget=600, budget=500) is False
+
+
+def test_the_wider_walk_wins_when_the_stops_already_count_the_same() -> None:
+    """Spread ranks above time in `_final_key`, and that is the whole answer to the fourth hour.
+
+    Two routes, two equally rated stops each: the tight pair is cheaper to walk, the wide pair covers
+    more of the city. Ranking by time here — which is what the key used to do — flips this choice and
+    every request-level test still passes, so the ordering itself is what is being pinned.
+    """
+    tight = [place("t1", lat=47.22, lon=39.72), place("t2", lat=47.22, lon=39.723)]
+    wide = [place("w1", lat=47.22, lon=39.72), place("w2", lat=47.25, lon=39.78)]
+
+    assert travel_chain(tight) < travel_chain(wide)
+    assert haversine_km(tight[0].location, tight[1].location) < haversine_km(
+        wide[0].location, wide[1].location
+    )
+    assert min([tight, wide], key=_final_key) is wide
 
 
 def test_the_timeline_numbers_stops_and_accumulates_transfers() -> None:
@@ -373,22 +420,22 @@ def test_a_day_longer_than_the_search_cap_is_still_filled() -> None:
 
 def test_nothing_that_would_have_fit_is_left_behind() -> None:
     # Position 0 is deliberately not treated as a gap: the place the walk starts at is the search's
-    # decision, and the fill pass must not undo it. On the current catalog that costs exactly one route —
-    # an eight-hour park walk leaves the zoo out because the zoo would only have fitted in front.
+    # decision, and the fill pass must not undo it. Checked against the engine's own predicate rather
+    # than the time arithmetic, because a left-out place can now be excluded by spacing as well.
     for hours, categories in product(DURATIONS, CATEGORY_SETS):
         stops, _minutes, _cost = walk(hours, categories)
         order = [stop.place for stop in stops]
         chosen = {stop.place.id for stop in stops}
         budget = int(hours * 60)
-        # No money cap in these requests, so time alone decides whether a gap was real.
+        # No money cap in these requests, so time and spacing alone decide whether a gap was real.
         candidates = filter_candidates(catalog(), request(duration_hours=hours, categories=categories))
         for candidate in candidates:
             if candidate.place.id in chosen:
                 continue
             for index in range(1, len(order) + 1):
                 gap = [*order[:index], candidate.place, *order[index:]]
-                assert occupied(gap) > budget, (
-                    f"{hours} h {categories}: {candidate.place.id} fitted at position {index} — "
+                assert not admissible(gap, budget, None), (
+                    f"{hours} h {categories}: {candidate.place.id} was admissible at position {index} — "
                     f"{occupied(gap)} min of a {budget} min budget"
                 )
 
@@ -417,11 +464,46 @@ def test_the_time_and_the_distance_fields_describe_the_same_walk() -> None:
         assert current.distance_m_from_prev == round(
             haversine_km(previous.place.location, current.place.location) * 1000
         )
-    # Four hours of walking is a walk, not a lap of one square and not a marathon. The floor used to
-    # sit at 1.5 km for a sparser catalog; #36 filled the center with short stops, and the densest
-    # route that fits is now nine of them inside 1.5 km, so what this guards is that the engine still
-    # spreads the walk over the streets instead of parking the visitor at one address.
-    assert 1.0 < sum(stop.distance_m_from_prev for stop in stops) / 1000 < 6
+    # Four hours of walking is a walk, not a lap of one square and not a marathon. The floor sits above
+    # the radius of the densest cluster in the catalog: below it the planner is back to spending the hour
+    # on addresses inside one arcade, which is what the spacing rule in `admissible` exists to prevent.
+    assert 2.5 < sum(stop.distance_m_from_prev for stop in stops) / 1000 < 6
+
+
+def test_two_stops_are_never_the_same_address() -> None:
+    """The catalog has cafés standing metres from the monument next door; a route must not read them as two.
+
+    Non-vacuous by construction: the requests below all return several stops, and before the spacing rule
+    the four-hour walk put nine of them inside 1.5 km with pairs 21 m apart.
+    """
+    checked = 0
+    for hours, categories in product(DURATIONS, CATEGORY_SETS):
+        stops, _minutes, _cost = walk(hours, categories)
+        for first, second in combinations([stop.place for stop in stops], 2):
+            checked += 1
+            # 150 m spelled here rather than read from MIN_SPACING_M: the promise is stated in metres, and
+            # a test that imported the threshold would pass happily the moment somebody set it to zero.
+            assert haversine_km(first.location, second.location) * 1000 >= 150.0, (
+                f"{hours} h {categories}: {first.id} and {second.id} stand at one address"
+            )
+    assert checked > 100, "the parametrized walks returned single-stop routes, so nothing was compared"
+
+
+def test_the_four_hour_walk_spreads_over_the_streets() -> None:
+    """The regression this guards is the one a visitor sees: the fourth hour added 40 metres of walking.
+
+    Four hours without categories is the request the Mini App opens with, so the numbers here are the
+    difference between «покажу город за четыре часа» and «провёл четыре часа в одной аркаде».
+    """
+    stops, minutes, _cost = walk(4.0)
+    order = [stop.place for stop in stops]
+
+    spread = max(
+        haversine_km(first.location, second.location) for first, second in combinations(order, 2)
+    )
+    assert spread > 1.0, f"four hours of stops all sit inside {spread:.2f} km of each other"
+    assert minutes <= 240
+    assert len(stops) >= 6, "spreading the walk may cost a stop or two, but not the fullness of the day"
 
 
 def test_the_real_catalog_gives_the_same_walk_whatever_order_the_records_come_in() -> None:
