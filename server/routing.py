@@ -7,6 +7,11 @@ deterministic (stable tie-breaks) so the same request always yields the same rou
 Selection is a beam search rather than a greedy step because a greedy step cannot see ahead: on the
 real catalog it spent 150 of 240 minutes on one theatre and returned a 4-hour route with fewer stops
 than the 3-hour route for the same categories.
+
+Density is not free: the catalog has cafés standing inside metres of the monuments next door, so a
+planner that only counts stops fills a whole day without leaving one address. `admissible` rejects
+pairs closer than `MIN_SPACING_M`, and among routes of equal fullness `_final_key` prefers the one that
+covers the most streets.
 """
 
 from __future__ import annotations
@@ -23,6 +28,11 @@ EARTH_RADIUS_KM = 6371.0
 # Walking speed plus a fixed allowance for leaving a building and finding the next pavement.
 TRANSIT_KMH = 4.8
 FIXED_TRANSFER_MINUTES = 3.0
+
+# Two objects can share an address: a café in the arcade of a theatre is a different visit but not a
+# different walk. Closer than this the pair counts as one place, and the planner will not spend two
+# stops of the day on it.
+MIN_SPACING_M = 150.0
 
 # Selection is exponential in the number of stops, so it is explored as a beam: a few promising
 # starting objects, each keeping its `BEAM_WIDTH` best partial routes per extension step. The cap bounds
@@ -107,18 +117,58 @@ def _cost(route: Sequence[Place]) -> float:
     return sum(place.price for place in route)
 
 
+def _too_close(route: Sequence[Place]) -> bool:
+    """Whether two stops of the route stand at one address, however the chain is ordered."""
+    return any(
+        haversine_km(route[i].location, route[j].location) * 1000 < MIN_SPACING_M
+        for i in range(len(route))
+        for j in range(i + 1, len(route))
+    )
+
+
+def _spread(route: Sequence[Place]) -> float:
+    """The diameter of the set in km: how much of the city the stops cover."""
+    if len(route) < 2:
+        return 0.0
+    return max(haversine_km(a.location, b.location) for a in route for b in route)
+
+
+def admissible(route: Sequence[Place], time_budget: int, budget: float | None) -> bool:
+    """Whether a set of stops can be part of an answer: it fits the day, the money, and is not one address.
+
+    One predicate for the search, the fill pass and everything that audits them afterwards, so a gap the
+    planner leaves behind is always a gap it can name a rule for.
+    """
+    if _chain_minutes(route) > time_budget:
+        return False
+    if budget is not None and _cost(route) > budget:
+        return False
+    return not _too_close(route)
+
+
 def _step_key(route: Sequence[Place]) -> tuple[int, int, float, tuple[str, ...]]:
     """Which partial route survives the beam, sorted ascending: more stops, then more leftover time.
 
     Stop count has to outrank rating here. Pruning by rating sum reintroduces the exact failure the
     search replaces: the promising-looking long stop wins the slot, and a longer request returns
     fewer places than a shorter one.
+
+    Deliberately not the same ranking as `_final_key`: coverage only becomes a criterion once the stop
+    count can no longer grow. Pruning partial routes by spread would drop the chains that were about to
+    collect those extra stops, which is the trade the beam is built to avoid. Spacing is a hard filter
+    in `admissible`, not a rank.
     """
     return (-len(route), _chain_minutes(route), -sum(p.rating for p in route), tuple(p.id for p in route))
 
 
-def _final_key(route: Sequence[Place]) -> tuple[int, float, int, tuple[str, ...]]:
-    """Which complete route is returned: most stops, then best rated, then least time spent.
+def _final_key(route: Sequence[Place]) -> tuple[int, float, float, int, tuple[str, ...]]:
+    """Which complete route is returned: most stops, then best rated, then the widest walk, then the shortest chain.
+
+    The third slot used to be the least time spent, so among equally full routes the engine chose the one
+    whose addresses sat closest together: on the real catalog the fourth hour of a day bought a stop 40
+    metres from the rest. Spread ranks above time because it is a property of the set, while time is a
+    property of its order — dropping time entirely would leave the permutations of one set tied and pick
+    between them by generation order, and routes of two or three stops never reach `optimize_order`.
 
     The trailing id tuple is what makes 'the same request always gives the same route' a property of
     the sort rather than of float arithmetic landing in a lucky order.
@@ -126,20 +176,19 @@ def _final_key(route: Sequence[Place]) -> tuple[int, float, int, tuple[str, ...]
     return (
         -len(route),
         -sum(place.rating for place in route),
+        -_spread(route),
         _chain_minutes(route),
         tuple(sorted(place.id for place in route)),
     )
 
 
 def _search(pool: list[Place], time_budget: int, budget: float | None) -> list[Place]:
-    """Beam search over append-only chains of places that fit the budget."""
+    """Beam search over append-only chains of places that the constraints admit."""
     # Sorting before the search keeps the rating sums — and therefore the tie-breaks — independent of
     # the order the records happen to sit in inside data/places.json.
     pool = sorted(pool, key=lambda place: (-place.rating, place.price, place.id))
     states = [
-        [place]
-        for place in pool[:START_VARIANTS]
-        if _chain_minutes([place]) <= time_budget and (budget is None or _cost([place]) <= budget)
+        [place] for place in pool[:START_VARIANTS] if admissible([place], time_budget, budget)
     ]
     complete = list(states)
 
@@ -151,9 +200,7 @@ def _search(pool: list[Place], time_budget: int, budget: float | None) -> list[P
                 if candidate.id in visited:
                     continue
                 option = [*route, candidate]
-                if _chain_minutes(option) > time_budget:
-                    continue
-                if budget is not None and _cost(option) > budget:
+                if not admissible(option, time_budget, budget):
                     continue
                 extended.append(option)
         if not extended:
@@ -181,19 +228,13 @@ def _fill_gaps(
             (-place.rating, index, place)
             for place in remaining
             for index in range(1, len(route) + 1)
-            if _fits([*route[:index], place, *route[index:]], time_budget, budget)
+            if admissible([*route[:index], place, *route[index:]], time_budget, budget)
         ]
         if not options:
             return route, remaining
         _, index, place = min(options, key=lambda option: (option[0], option[1], option[2].id))
         route = [*route[:index], place, *route[index:]]
         remaining.remove(place)
-
-
-def _fits(route: Sequence[Place], time_budget: int, budget: float | None) -> bool:
-    if _chain_minutes(route) > time_budget:
-        return False
-    return budget is None or _cost(route) <= budget
 
 
 def optimize_order(places: list[Place]) -> list[Place]:
