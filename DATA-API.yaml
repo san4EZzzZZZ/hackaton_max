@@ -1257,6 +1257,26 @@ components:
           title: Duration Hours
           description: Желаемая длительность, ч.
           default: 4.0
+        start_lat:
+          anyOf:
+          - type: number
+            maximum: 90.0
+            minimum: -90.0
+          - type: 'null'
+          title: Start Lat
+          description: 'Широта точки, из которой начинают прогулку, deg — вместе с
+            `start_lon`. Без неё маршрут строится как раньше: первой точкой планировщика,
+            без перехода к ней. С ней первые `travel_minutes_from_prev` и `distance_m_from_prev`
+            считаются от старта и съедают бюджет времени, а слишком далёкие места
+            до фильтрации не доходят'
+        start_lon:
+          anyOf:
+          - type: number
+            maximum: 180.0
+            minimum: -180.0
+          - type: 'null'
+          title: Start Lon
+          description: Долгота точки старта, deg — вместе с `start_lat`
       additionalProperties: false
       type: object
       required:
@@ -1273,11 +1293,17 @@ components:
         city:
           type: string
           title: City
+        start:
+          anyOf:
+          - $ref: '#/components/schemas/Location'
+          - type: 'null'
+          description: Точка старта из запроса; None, если старт не передавали
         total_duration_hours:
           type: number
           minimum: 0.0
           title: Total Duration Hours
-          description: Визиты и переходы между точками
+          description: Визиты и переходы между точками, включая переход от старта
+            к первой точке
         total_duration_minutes:
           type: integer
           minimum: 0.0
@@ -1288,7 +1314,8 @@ components:
           type: integer
           minimum: 0.0
           title: Total Distance M
-          description: Сумма прямых расстояний между соседними точками, м
+          description: Сумма прямых расстояний между соседними точками, м, включая
+            отрезок от старта до первой точки
           default: 0
         slack_minutes:
           anyOf:
@@ -1346,17 +1373,17 @@ components:
           type: integer
           minimum: 0.0
           title: Travel Minutes From Prev
-          description: 'Переход от предыдущей точки, мин. Оценка планировщика (пеший
-            ход плюс запас на ожидание), а не ETA навигатора: путь по тротуарам всегда
-            дольше'
+          description: 'Переход от предыдущей точки, мин; у первой точки — от `start`
+            запроса, или 0, если старта не было. Оценка планировщика (пеший ход плюс
+            запас на ожидание), а не ETA навигатора: путь по тротуарам всегда дольше'
           default: 0
         distance_m_from_prev:
           type: integer
           minimum: 0.0
           title: Distance M From Prev
           description: Расстояние от предыдущей точки по прямой, м; у первой точки
-            0. Длина тротуарного обхода всегда больше, поэтому подпись «N км пешком»
-            честнее читать «N км напрямую»
+            — от точки старта, если она передана, иначе 0. Длина тротуарного обхода
+            всегда больше, поэтому подпись «N км пешком» честнее читать «N км напрямую»
           default: 0
       type: object
       required:
@@ -1377,11 +1404,17 @@ components:
         city:
           type: string
           title: City
+        start:
+          anyOf:
+          - $ref: '#/components/schemas/Location'
+          - type: 'null'
+          description: Точка старта из запроса; None, если старт не передавали
         total_duration_hours:
           type: number
           minimum: 0.0
           title: Total Duration Hours
-          description: Визиты и переходы между точками
+          description: Визиты и переходы между точками, включая переход от старта
+            к первой точке
         total_duration_minutes:
           type: integer
           minimum: 0.0
@@ -1392,7 +1425,8 @@ components:
           type: integer
           minimum: 0.0
           title: Total Distance M
-          description: Сумма прямых расстояний между соседними точками, м
+          description: Сумма прямых расстояний между соседними точками, м, включая
+            отрезок от старта до первой точки
           default: 0
         slack_minutes:
           anyOf:

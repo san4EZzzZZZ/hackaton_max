@@ -9,12 +9,25 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from server.routing import haversine_km, travel_minutes
+from server.schemas import Location
+
 CITY = "Ростов-на-Дону"
 GENERATE = "/api/v1/routes/generate"
+
+# Two streets southwest of the densest corner of the catalog: a real walking distance to the first door,
+# and not the address of any place, so a head hop here cannot be mistaken for a zero-length transition.
+START = {"lat": 47.22, "lon": 39.72}
+# Ninety kilometres north of the city — the walking budget of any legal request runs out before it.
+OUT_OF_TOWN = {"lat": 48.0, "lon": 39.72}
 
 
 def generate(client: TestClient, **body):
     return client.post(GENERATE, json={"city": CITY, **body})
+
+
+def with_start(client: TestClient, point: dict, **body):
+    return generate(client, start_lat=point["lat"], start_lon=point["lon"], **body)
 
 
 def test_a_matching_request_returns_a_timed_route(client: TestClient) -> None:
@@ -54,8 +67,80 @@ def test_the_answer_adds_up_to_the_numbers_it_reports(client: TestClient) -> Non
     assert route["total_duration_hours"] == round(route["total_duration_minutes"] / 60, 2)
     assert route["total_distance_m"] == sum(stop["distance_m_from_prev"] for stop in stops)
     assert route["slack_minutes"] == 240 - route["total_duration_minutes"]
+    # This request names no origin, so the first stop has nothing to walk from and both fields are 0.
+    # `test_a_start_becomes_the_first_leg_of_the_walk` pins the other half of that sentence.
     assert stops[0]["travel_minutes_from_prev"] == stops[0]["distance_m_from_prev"] == 0
     assert all(stop["distance_m_from_prev"] >= 0 for stop in stops)
+
+
+def test_a_start_becomes_the_first_leg_of_the_walk(client: TestClient) -> None:
+    """Where the visitor stands is not a label on the answer — it is the first segment of the timeline.
+
+    The head hop is what makes a start cost anything: without it `start_lat` would only move the marker on
+    the map while the plan, its minutes and its budget stayed exactly as they were.
+    """
+    route = with_start(client, START, duration_hours=4).json()
+    first = route["stops"][0]
+    origin = Location(**START)
+    walked = haversine_km(origin, Location(**first["place"]["location"]))
+
+    assert route["start"] == START, "the answer has to say which walk it planned"
+    assert round(walked * 1000) > 0, "the test start must not sit at a catalog address"
+    assert first["distance_m_from_prev"] == round(walked * 1000)
+    head_minutes = travel_minutes(origin, Location(**first["place"]["location"]))
+    assert first["travel_minutes_from_prev"] == head_minutes > 0
+    assert first["arrival_offset_minutes"] == first["travel_minutes_from_prev"]
+    assert route["total_distance_m"] == sum(stop["distance_m_from_prev"] for stop in route["stops"])
+    assert route["total_duration_minutes"] == sum(
+        stop["travel_minutes_from_prev"] + stop["visit_duration_minutes"] for stop in route["stops"]
+    )
+    assert route["slack_minutes"] == 240 - route["total_duration_minutes"]
+
+
+def test_a_walk_without_an_origin_says_so(client: TestClient) -> None:
+    """`start` is part of every answer, not only the ones that sent it: a missing key and a null are
+    two different things for a client drawing the map."""
+    route = generate(client, duration_hours=4).json()
+    assert "start" in route
+    assert route["start"] is None
+
+
+def test_a_start_far_enough_away_empties_the_catalog(client: TestClient) -> None:
+    """Reaching nothing is the same 404 as an unknown category, and the same request without a start
+    still returns a route — so the status points at the start, not at the city."""
+    assert with_start(client, OUT_OF_TOWN, duration_hours=12).status_code == 404
+    assert generate(client, duration_hours=12).status_code == 200
+
+
+def test_half_a_coordinate_pair_is_refused(client: TestClient) -> None:
+    """One coordinate locates nothing, and quietly dropping the half that arrived is the same lie as a
+    swallowed `budget`: the client would read a start-shaped route out of a request it thought it made.
+    """
+    for body in ({"start_lat": START["lat"]}, {"start_lon": START["lon"]}):
+        response = generate(client, duration_hours=4, **body)
+        assert response.status_code == 422, body
+        assert any("start_lat" in str(error) for error in response.json()["detail"]), body
+
+
+def test_a_start_off_the_face_of_the_earth_is_refused(client: TestClient) -> None:
+    assert with_start(client, {"lat": 91.0, "lon": 39.72}).status_code == 422
+    assert with_start(client, {"lat": 47.22, "lon": -181.0}).status_code == 422
+
+
+def test_an_origin_changes_which_places_the_day_picks(client: TestClient) -> None:
+    """The whole point of the field: the visitor's position changes what the day looks like.
+
+    Only the difference and the ceiling are asserted, not a particular stop list — which route is better
+    from a given corner is the planner's business, and pinning it here would make the test a copy of the
+    fixture.
+    """
+    from_origin = with_start(client, START, duration_hours=4).json()
+    unfixed = generate(client, duration_hours=4).json()
+
+    assert {stop["place"]["id"] for stop in from_origin["stops"]} != {
+        stop["place"]["id"] for stop in unfixed["stops"]
+    }, "the start was ignored: the plan is identical to the one built with no origin at all"
+    assert from_origin["total_duration_minutes"] <= 240
 
 
 def test_two_identical_requests_agree_except_for_their_identifier(client: TestClient) -> None:
@@ -180,3 +265,13 @@ def test_the_spec_documents_the_codes_clients_must_handle(client: TestClient) ->
     assert "503" in paths["/api/v1/places"]["get"]["responses"]
     assert "404" in paths["/api/v1/places/{place_id}"]["get"]["responses"]
     assert "503" in paths["/readyz"]["get"]["responses"]
+
+
+def test_the_spec_publishes_the_start_pair(client: TestClient) -> None:
+    """`start_lat`/`start_lon` are useless to the Mini App if the generated schema hides them."""
+    schemas = client.get("/openapi.json").json()["components"]["schemas"]
+    fields = schemas["RouteRequest"]["properties"]
+    assert {"start_lat", "start_lon"} <= set(fields)
+    for name in ("start_lat", "start_lon"):
+        assert fields[name].get("description"), f"{name} has to arrive documented"
+    assert "start" in schemas["RouteResponse"]["properties"]
