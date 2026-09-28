@@ -8,9 +8,11 @@ from server.catalog import (
     CatalogError,
     chip_summaries,
     city_matches,
+    has_any_tag,
     known_categories,
     known_cities,
     load_places,
+    normalize_tags,
     search_matches,
 )
 from server.routing import within_radius_km
@@ -69,7 +71,8 @@ def _center_or_none(near_lat: float | None, near_lon: float | None) -> Location 
     response_model=list[Place],
     summary="Список достопримечательностей",
     description=(
-        "Фильтры комбинируются между собой. Порядок ответа — порядок в каталоге, радиус ничего не "
+        "Фильтры комбинируются между собой: `category` отвечает «что это за объект», `tag` — «зачем "
+        "сюда идут», и это независимые оси. Порядок ответа — порядок в каталоге, радиус ничего не "
         "пересортировывает. Сколько объектов подошло до limit/offset — в заголовке X-Total-Count."
     ),
     responses={
@@ -82,6 +85,16 @@ async def list_places(
     response: Response,
     city: str | None = Query(None, description="Фильтр по городу, подходит краткая форма — «Ростов»"),
     category: str | None = Query(None, description="Фильтр по категории"),
+    # Not `list[TagId]`: an unknown category here answers `200 []`, so an unknown tag has to answer the
+    # same way. A literal would turn a typo into 422 and put two filters of one screen at odds.
+    tag: list[str] | None = Query(
+        None,
+        description=(
+            "Фильтр по настроению: id из `GET /chips`, повторяется в URL несколько раз. Внутри списка — "
+            "ИЛИ (место годится, если у него есть хотя бы одна из запрошенных меток), с `category` — И. "
+            "Неизвестный id не находит ничего, как и неизвестная категория"
+        ),
+    ),
     is_pushkin_card: bool | None = Query(None, description="Только по Пушкинской карте"),
     max_price: float | None = Query(None, ge=0, description="Максимальная стоимость, руб."),
     q: str | None = Query(
@@ -108,6 +121,9 @@ async def list_places(
     if category:
         wanted_category = category.strip().lower()
         results = [place for place in results if place.category.lower() == wanted_category]
+    # Пустой набор тегов ничего не фильтрует — это обещание `has_any_tag`, а не проверка здесь.
+    wanted_tags = normalize_tags(tag or [])
+    results = [place for place in results if has_any_tag(place, wanted_tags)]
     if is_pushkin_card is not None:
         results = [place for place in results if place.is_pushkin_card == is_pushkin_card]
     if max_price is not None:

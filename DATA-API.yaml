@@ -10,9 +10,10 @@ paths:
       tags:
       - Places
       summary: Список достопримечательностей
-      description: Фильтры комбинируются между собой. Порядок ответа — порядок в каталоге,
-        радиус ничего не пересортировывает. Сколько объектов подошло до limit/offset
-        — в заголовке X-Total-Count.
+      description: 'Фильтры комбинируются между собой: `category` отвечает «что это
+        за объект», `tag` — «зачем сюда идут», и это независимые оси. Порядок ответа
+        — порядок в каталоге, радиус ничего не пересортировывает. Сколько объектов
+        подошло до limit/offset — в заголовке X-Total-Count.'
       operationId: list_places_api_v1_places_get
       parameters:
       - name: city
@@ -35,6 +36,24 @@ paths:
           description: Фильтр по категории
           title: Category
         description: Фильтр по категории
+      - name: tag
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+          - type: 'null'
+          description: 'Фильтр по настроению: id из `GET /chips`, повторяется в URL
+            несколько раз. Внутри списка — ИЛИ (место годится, если у него есть хотя
+            бы одна из запрошенных меток), с `category` — И. Неизвестный id не находит
+            ничего, как и неизвестная категория'
+          title: Tag
+        description: 'Фильтр по настроению: id из `GET /chips`, повторяется в URL
+          несколько раз. Внутри списка — ИЛИ (место годится, если у него есть хотя
+          бы одна из запрошенных меток), с `category` — И. Неизвестный id не находит
+          ничего, как и неизвестная категория'
       - name: is_pushkin_card
         in: query
         required: false
