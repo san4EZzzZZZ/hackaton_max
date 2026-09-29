@@ -3,13 +3,23 @@ import { Map as GlMap, setWorkerUrl } from 'maplibre-gl'
 import maplibreWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import PrimaryButton from '../components/PrimaryButton.jsx'
-import { ArrowLeftIcon, SwapIcon } from '../components/icons.jsx'
+import { ArrowLeftIcon, NavigationIcon, SwapIcon } from '../components/icons.jsx'
 import styles from './RouteResultScreen.module.css'
 
 const ROSTOV_CENTER = [39.72, 47.235]
 
 // Vite's dep-optimizer breaks maplibre's default worker URL resolution.
 setWorkerUrl(maplibreWorker)
+
+function stopCoord(stop) {
+  return [stop.place.location.lon, stop.place.location.lat]
+}
+
+// The answer echoes the origin it planned from, so the map can show it without the setup screen
+// having to hand its own selection over.
+function startCoord(start) {
+  return [start.lon, start.lat]
+}
 
 function formatDistance(meters) {
   // 950 m — порог, ниже которого «км» округлились бы в «0.0»: маршрут из двух кофеен рядом
@@ -38,15 +48,15 @@ export default function RouteResultScreen({ route, onEdit }) {
       attributionControl: false,
       scrollZoom: false,
     })
-    const coords = route.stops.map((stop) => [
-      stop.place.location.lon,
-      stop.place.location.lat,
-    ])
+    const coords = route.stops.map(stopCoord)
+    const start = route.start ? startCoord(route.start) : null
+    // The line the guest walks starts where they stand, not at the first door.
+    const path = start === null ? coords : [start, ...coords]
     map.on('load', () => {
       if (coords.length === 0) return
       map.addSource('route-line', {
         type: 'geojson',
-        data: { type: 'Feature', geometry: { type: 'LineString', coordinates: coords } },
+        data: { type: 'Feature', geometry: { type: 'LineString', coordinates: path } },
       })
       map.addLayer({
         id: 'route-line',
@@ -75,8 +85,26 @@ export default function RouteResultScreen({ route, onEdit }) {
           'circle-stroke-width': 2.5,
         },
       })
-      const lons = coords.map((c) => c[0])
-      const lats = coords.map((c) => c[1])
+      if (start !== null) {
+        // Inverted colours: the origin must not read as a place to visit.
+        map.addSource('route-start', {
+          type: 'geojson',
+          data: { type: 'Feature', geometry: { type: 'Point', coordinates: start } },
+        })
+        map.addLayer({
+          id: 'route-start',
+          type: 'circle',
+          source: 'route-start',
+          paint: {
+            'circle-radius': 8,
+            'circle-color': '#fff',
+            'circle-stroke-color': '#10B981',
+            'circle-stroke-width': 4,
+          },
+        })
+      }
+      const lons = path.map((c) => c[0])
+      const lats = path.map((c) => c[1])
       map.fitBounds(
         [
           [Math.min(...lons), Math.min(...lats)],
@@ -125,6 +153,20 @@ export default function RouteResultScreen({ route, onEdit }) {
           <p className={styles.empty}>Маршрут пуст — попробуйте изменить время или интересы.</p>
         ) : (
           <ol className={styles.stops}>
+            {route.start && route.stops.length > 0 && (
+              <li className={styles.stop}>
+                <span className={styles.startBadge} aria-hidden="true">
+                  <NavigationIcon />
+                </span>
+                <div className={styles.stopText}>
+                  <span className={styles.stopTitle}>Старт</span>
+                  <span className={styles.stopSub}>
+                    {`${route.stops[0].travel_minutes_from_prev} мин пешком • ` +
+                      `${formatDistance(route.stops[0].distance_m_from_prev)} до первой точки`}
+                  </span>
+                </div>
+              </li>
+            )}
             {route.stops.map((stop) => (
               <li key={stop.place.id} className={styles.stop}>
                 <span className={styles.order}>{stop.order}</span>

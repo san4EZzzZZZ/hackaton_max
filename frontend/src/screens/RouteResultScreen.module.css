@@ -185,6 +185,24 @@
   gap: 3px;
 }
 
+/* Same plate as a stop number, hollow and green-lined: this row is where the guest stands, not a place. */
+.startBadge {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  border: 2px solid #10b981;
+  color: #10b981;
+}
+
+.startBadge svg {
+  width: 12px;
+  height: 12px;
+}
+
 .stopTitle {
   font-size: 14px;
   font-weight: 600;
