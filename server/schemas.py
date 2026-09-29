@@ -467,6 +467,26 @@ class RouteStop(ApiModel):
             "честнее читать «N км напрямую»"
         ),
     )
+    walk_distance_m_from_prev: int | None = Field(
+        None,
+        ge=0,
+        description=(
+            "Длина этого перехода по пешеходной сети, м — то, что человек реально пройдёт. null при "
+            "`geometry_source = straight_line`: прямую между маркерами измерить не у кого, и подписывать "
+            "её как путь по тротуарам было бы враньём. Не замена `travel_minutes_from_prev`: минуты "
+            "планировщика остаются обещанием, на котором маршрут сошёл в заказанный бюджет"
+        ),
+    )
+    geometry_from_prev: list[list[float]] | None = Field(
+        None,
+        description=(
+            "Линия перехода от предыдущей точки к этой, координаты GeoJSON как [lon, lat]; у первой "
+            "точки — от `start`, если он передавался. null бывает у первой точки без старта и у "
+            "одномаршрутной подборки — вписать переход некуда. При `geometry_source = straight_line` "
+            "это хорда между маркерами, и рисовать её надо пунктиром. Линия начинается у ближайшей "
+            "точки пешеходной сети, а не у маркера: места стоят в 5–150 м от тротуара"
+        ),
+    )
 
 
 class RouteResponse(ApiModel):
@@ -503,6 +523,23 @@ class RouteResponse(ApiModel):
         ),
     )
     total_cost: float = Field(..., ge=0, description="Суммарная стоимость посещения, руб.")
+    geometry_source: Literal["osrm", "straight_line"] = Field(
+        "straight_line",
+        description=(
+            "Откуда линия между точками: `osrm` — пешеходный маршрут, посчитанный для этой цепочки, "
+            "`straight_line` — хорда между маркерами, потому что сервер маршрутов не ответил или "
+            "выключен. Определяет и подпись длины на экране: «по тротуарам» против «напрямую»"
+        ),
+    )
+    total_walk_distance_m: int | None = Field(
+        None,
+        ge=0,
+        description=(
+            "Сумма измеренных переходов, м; null, если ни один переход не измерен (весь маршрут — "
+            "хорды). С `total_distance_m` сравнивать напрямую нельзя: тротуар огибает квартал, а прямая "
+            "режет его по диагонали"
+        ),
+    )
     places: list[Place] = Field(default_factory=list, description="Точки в порядке визита")
     stops: list[RouteStop] = Field(
         default_factory=list,
@@ -518,6 +555,12 @@ class RouteResponse(ApiModel):
             last = self.stops[-1]
             self.total_duration_minutes = last.arrival_offset_minutes + last.visit_duration_minutes
             self.total_distance_m = sum(stop.distance_m_from_prev for stop in self.stops)
+            measured = [
+                stop.walk_distance_m_from_prev
+                for stop in self.stops
+                if stop.walk_distance_m_from_prev is not None
+            ]
+            self.total_walk_distance_m = sum(measured) if measured else None
         return self
 
 

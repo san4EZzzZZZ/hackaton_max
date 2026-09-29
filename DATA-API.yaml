@@ -1587,6 +1587,26 @@ components:
           minimum: 0.0
           title: Total Cost
           description: Суммарная стоимость посещения, руб.
+        geometry_source:
+          type: string
+          enum:
+          - osrm
+          - straight_line
+          title: Geometry Source
+          description: 'Откуда линия между точками: `osrm` — пешеходный маршрут, посчитанный
+            для этой цепочки, `straight_line` — хорда между маркерами, потому что
+            сервер маршрутов не ответил или выключен. Определяет и подпись длины на
+            экране: «по тротуарам» против «напрямую»'
+          default: straight_line
+        total_walk_distance_m:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Total Walk Distance M
+          description: 'Сумма измеренных переходов, м; null, если ни один переход
+            не измерен (весь маршрут — хорды). С `total_distance_m` сравнивать напрямую
+            нельзя: тротуар огибает квартал, а прямая режет его по диагонали'
         places:
           items:
             $ref: '#/components/schemas/Place'
@@ -1642,6 +1662,32 @@ components:
             — от точки старта, если она передана, иначе 0. Длина тротуарного обхода
             всегда больше, поэтому подпись «N км пешком» честнее читать «N км напрямую»
           default: 0
+        walk_distance_m_from_prev:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Walk Distance M From Prev
+          description: 'Длина этого перехода по пешеходной сети, м — то, что человек
+            реально пройдёт. null при `geometry_source = straight_line`: прямую между
+            маркерами измерить не у кого, и подписывать её как путь по тротуарам было
+            бы враньём. Не замена `travel_minutes_from_prev`: минуты планировщика
+            остаются обещанием, на котором маршрут сошёл в заказанный бюджет'
+        geometry_from_prev:
+          anyOf:
+          - items:
+              items:
+                type: number
+              type: array
+            type: array
+          - type: 'null'
+          title: Geometry From Prev
+          description: 'Линия перехода от предыдущей точки к этой, координаты GeoJSON
+            как [lon, lat]; у первой точки — от `start`, если он передавался. null
+            бывает у первой точки без старта и у одномаршрутной подборки — вписать
+            переход некуда. При `geometry_source = straight_line` это хорда между
+            маркерами, и рисовать её надо пунктиром. Линия начинается у ближайшей
+            точки пешеходной сети, а не у маркера: места стоят в 5–150 м от тротуара'
       type: object
       required:
       - place
@@ -1698,6 +1744,26 @@ components:
           minimum: 0.0
           title: Total Cost
           description: Суммарная стоимость посещения, руб.
+        geometry_source:
+          type: string
+          enum:
+          - osrm
+          - straight_line
+          title: Geometry Source
+          description: 'Откуда линия между точками: `osrm` — пешеходный маршрут, посчитанный
+            для этой цепочки, `straight_line` — хорда между маркерами, потому что
+            сервер маршрутов не ответил или выключен. Определяет и подпись длины на
+            экране: «по тротуарам» против «напрямую»'
+          default: straight_line
+        total_walk_distance_m:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Total Walk Distance M
+          description: 'Сумма измеренных переходов, м; null, если ни один переход
+            не измерен (весь маршрут — хорды). С `total_distance_m` сравнивать напрямую
+            нельзя: тротуар огибает квартал, а прямая режет его по диагонали'
         places:
           items:
             $ref: '#/components/schemas/Place'

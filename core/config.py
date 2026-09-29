@@ -88,6 +88,13 @@ class Settings(BaseSettings):
     # Cities `python -m ingest --all` walks when no explicit list is passed.
     ingest_cities_file: str = "data/cities.json"
 
+    # Пешеходная линия маршрута (server/geometry.py). Публичный демо-инстанс OSRM, ключа не просит;
+    # пустое значение = рисовать хорды между точками и помечать ответ как straight_line.
+    osrm_url: str = "https://router.project-osrm.org"
+    # Генерация маршрута интерактивна, поэтому timeout короткий: ждать ответа общего демо-сервера
+    # дольше — значит показать посетителю спиннер там, где честнее прямолинейная линия.
+    osrm_timeout: float = 6.0
+
     @field_validator("bot_user_id", mode="before")
     @classmethod
     def _blank_user_id(cls, value: object) -> object:

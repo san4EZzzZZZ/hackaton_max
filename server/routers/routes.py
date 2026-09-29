@@ -6,6 +6,7 @@ import uuid
 
 from fastapi import APIRouter, HTTPException
 
+from server import geometry
 from server.catalog import CatalogError, load_places
 from server.routing import assemble_route, filter_candidates
 from server.schemas import (
@@ -38,6 +39,10 @@ async def generate_route(request: RouteRequest) -> RouteResponse:
         )
 
     stops, total_minutes, total_cost = assemble_route(candidates, request)
+    # Drawing happens after the plan exists and changes nothing about it: the line is decoration plus a
+    # measured length, while the minutes the visitor bought stay the planner's own.
+    walk = await geometry.draw(geometry.route_points(stops, request.start))
+    stops = geometry.annotate(stops, request.start, walk)
     return RouteResponse(
         route_id=str(uuid.uuid4()),
         title=f"Маршрут выходного дня: {request.city}",
@@ -47,6 +52,7 @@ async def generate_route(request: RouteRequest) -> RouteResponse:
         total_duration_minutes=total_minutes,
         slack_minutes=max(0, int(request.duration_hours * 60) - total_minutes),
         total_cost=round(total_cost, 2),
+        geometry_source=walk.source,
         places=[stop.place for stop in stops],
         stops=stops,
     )
