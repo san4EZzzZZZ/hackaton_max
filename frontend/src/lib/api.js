@@ -48,6 +48,8 @@ export const api = {
     const query = params.toString()
     return request(`/places${query ? `?${query}` : ''}`)
   },
+  /** Справка о месте: история, факты для тех, кто стоит рядом. 404 — справки ещё нет. */
+  getGuide: (placeId) => request(`/places/${encodeURIComponent(placeId)}/guide`),
   generateRoute: (payload) =>
     request('/routes/generate', { method: 'POST', body: JSON.stringify(payload) }),
 }

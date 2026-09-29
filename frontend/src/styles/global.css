@@ -98,6 +98,53 @@ button {
   }
 }
 
+/* Нумерованные точки маршрута. Узел создаёт lib/map.js и вешает его в pane MapLibre — вне
+   React-дерева, поэтому класс глобальный, а не CSS-модуль экрана.
+   Наружный узел двигает MapLibre: каждый кадр пишет туда transform инлайном. Ни transition, ни
+   transform на нём — анимация позиции и есть «точки летают при зуме». Вся графика на диске внутри. */
+.stop-marker {
+  display: block;
+  line-height: 0;
+}
+
+.stop-marker__disc {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #10b981;
+  border: 2.5px solid #fff;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 3px 9px rgba(17, 24, 39, 0.3);
+  transition:
+    transform 0.16s ease,
+    background-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.stop-marker:disabled {
+  cursor: default;
+}
+
+.stop-marker[data-state='active'] .stop-marker__disc {
+  background: var(--green-900);
+  transform: scale(1.28);
+  box-shadow: 0 5px 14px rgba(17, 24, 39, 0.38);
+}
+
+.stop-marker[data-state='reached'] .stop-marker__disc {
+  background: #9ca3af;
+}
+
+.stop-marker[data-state='target'] .stop-marker__disc {
+  background: #2563eb;
+  transform: scale(1.2);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

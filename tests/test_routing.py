@@ -267,6 +267,27 @@ def test_admission_rejects_one_address_before_it_rejects_the_clock() -> None:
     assert admissible(expensive, time_budget=600, budget=500) is False
 
 
+def test_a_hop_longer_than_a_walk_is_not_a_hop() -> None:
+    """The bound is about the route, not about the city: a chain of short steps still crosses town.
+
+    A generated catalog spans whatever the city's bounding box covered, and in a long city such as
+    Sochi the two highest-rated objects were 4 km apart with 120 minutes of budget between them. The
+    planner used to spend an hour of the visitor's walk on that path and report two stops; now it
+    reports the one stop that is actually reachable and leaves the other for a day that asked for it.
+    """
+    nearby = place("near", lat=43.60, lon=39.73, minutes=30)
+    further = place("further", lat=43.60, lon=39.755, minutes=30)  # ~2 km east, at this latitude
+    across = place("across", lat=43.60, lon=39.805, minutes=30)  # ~6 km from `nearby`
+
+    assert haversine_km(nearby.location, further.location) < 2.5
+    assert haversine_km(further.location, across.location) > 2.5
+    assert admissible([nearby, further], time_budget=600, budget=None) is True
+    assert admissible([nearby, across], time_budget=600, budget=None) is False
+    # Every individual step is inside the bound, so the set is a walk even though its ends are 6 km apart.
+    middle = place("middle", lat=43.60, lon=39.78, minutes=30)
+    assert admissible([nearby, further, middle, across], time_budget=600, budget=None) is True
+
+
 def test_the_wider_walk_wins_when_the_stops_already_count_the_same() -> None:
     """Spread ranks above time in `_final_key`, and that is the whole answer to the fourth hour.
 
@@ -388,9 +409,10 @@ def test_the_start_lets_the_order_move_the_first_stop_too() -> None:
 
 
 def test_the_timeline_numbers_stops_and_accumulates_transfers() -> None:
-    # About three kilometres apart: on foot that is a real transfer of under an hour, which a
-    # four-hour walk can afford. It used to be ten times further, back when transfers were driven.
-    first, second = place("first", minutes=30), place("second", lat=47.24, lon=39.75, minutes=45)
+    # A kilometre and a half apart: on foot that is a real transfer of under an hour, which a four-hour
+    # walk can afford. It used to be ten times further, back when transfers were driven, and it is a
+    # little under a kilometre closer than that since `MAX_LEG_KM` decided what a stop-to-stop hop is.
+    first, second = place("first", minutes=30), place("second", lat=47.23, lon=39.735, minutes=45)
     candidates = filter_candidates([first, second], request(duration_hours=4))
     stops, total, _cost = assemble_route(candidates, request(duration_hours=4))
 
@@ -682,6 +704,24 @@ def test_two_stops_are_never_the_same_address() -> None:
                 f"{hours} h {categories}: {first.id} and {second.id} stand at one address"
             )
     assert checked > 100, "the parametrized walks returned single-stop routes, so nothing was compared"
+
+
+def test_no_walk_in_the_real_catalog_contains_a_hop_nobody_makes_on_foot() -> None:
+    """The bound has to hold on the assembled route, not only inside the search that built it.
+
+    Measured through `distance_m_from_prev`, which is the number the client draws: what the engine
+    admitted in one order and then reordered is only honest if the leg it reports is still a leg.
+    """
+    checked = 0
+    for hours, categories in product(DURATIONS, CATEGORY_SETS):
+        stops, _minutes, _cost = walk(hours, categories)
+        for second in stops[1:]:
+            checked += 1
+            assert second.distance_m_from_prev <= 2500, (
+                f"{hours} h {categories or 'все'}: переход {second.distance_m_from_prev} м до "
+                f"{second.place.id} — это не прогулка, а переезд"
+            )
+    assert checked > 100, "the parametrized walks were all single-stop routes, so nothing was measured"
 
 
 def test_the_four_hour_walk_spreads_over_the_streets() -> None:

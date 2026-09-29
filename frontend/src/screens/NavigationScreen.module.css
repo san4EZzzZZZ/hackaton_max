@@ -1,0 +1,237 @@
+/* Экран навигации: карта занимает весь экран, шторка снизу — половину, чтобы оставался видно путь. */
+.screen {
+  position: fixed;
+  inset: 0;
+  background: #d7e1eb;
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+}
+
+.back {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 16px);
+  left: 24px;
+  z-index: 800;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(71, 71, 71, 0.5);
+  color: #fff;
+  transition: transform 0.12s ease;
+}
+
+.back:active {
+  transform: scale(0.92);
+}
+
+.back svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Пилюля прогресса по центру сверху: «где я в маршруте» — первый вопрос на ходу. */
+.progress {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 28px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 790;
+  height: 28px;
+  padding: 0 14px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-card);
+  color: var(--ink-900);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sheet {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  z-index: 700;
+  width: 100%;
+  max-width: 480px;
+  height: 50dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  padding: 20px 24px calc(env(safe-area-inset-bottom) + 20px);
+  box-shadow: 0 -12px 40px rgba(17, 24, 39, 0.18);
+  animation: rise 0.35s ease both;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@keyframes rise {
+  from {
+    transform: translate(-50%, 100%);
+  }
+  to {
+    transform: translate(-50%, 0);
+  }
+}
+
+.timer {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timerLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+}
+
+.timerValue {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ink-900);
+}
+
+.timerSub {
+  font-size: 12px;
+  color: var(--ink-400);
+}
+
+.next {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-tint);
+}
+
+.nextLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--green-900);
+}
+
+.nextTitle {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink-900);
+}
+
+.nextSub {
+  font-size: 13px;
+  color: var(--ink-500);
+}
+
+.actions {
+  flex: none;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.link {
+  align-self: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-500);
+  padding: 6px 10px;
+}
+
+.link:active {
+  color: var(--ink-900);
+}
+
+/* Карточка места: то, ради чего здесь остановились. */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.photo {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  background: #e9edf2;
+}
+
+.photoMissing {
+  height: 60px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: #eef2f6;
+  color: var(--ink-400);
+  font-size: 12px;
+}
+
+.cardBadge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green-900);
+}
+
+.cardTitle {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink-900);
+}
+
+.cardText {
+  font-size: 14px;
+  line-height: 1.45;
+  color: #374151;
+}
+
+.cardMore {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-500);
+}
+
+.done {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.doneLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+}
+
+.doneValue {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--ink-900);
+}
+
+.doneSub {
+  font-size: 13px;
+  color: var(--ink-500);
+}

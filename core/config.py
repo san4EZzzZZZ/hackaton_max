@@ -62,6 +62,39 @@ class Settings(BaseSettings):
     polling_limit: int = 100
     auto_setup: bool = True
 
+    # Place ingestion (see ingest/). The public OpenStreetMap and Wikimedia endpoints all require an
+    # identifying User-Agent with a contact, and all of them throttle anonymous traffic; a generic
+    # "curl/8" UA gets 403 at Nominatim and is quietly deprioritised at Overpass.
+    ingest_user_agent: str = "MAXNavigatorBot/1.0 (https://max.chestnyidiplom.ru)"
+    ingest_token: str = ""
+    overpass_url: str = "https://overpass-api.de/api/interpreter"
+    nominatim_url: str = "https://nominatim.openstreetmap.org"
+    wikidata_sparql_url: str = "https://query.wikidata.org/sparql"
+    commons_api_url: str = "https://commons.wikimedia.org/w/api.php"
+    # A full city pass is one heavy query per category group, so it gets far more time than the bot's
+    # 30-second default; 504 from the public Overpass instance is routine under load.
+    ingest_timeout: float = 180.0
+    ingest_http_retries: int = 5
+    # Idle seconds between requests to the same public endpoint. Nominatim's policy allows one per
+    # second; Overpass runs a per-IP queue and starts refusing connections once it is full, which a
+    # five-second gap keeps from happening across a seven-category city pass.
+    ingest_request_gap: float = 5.0
+    ingest_max_places_per_city: int = 60
+    ingest_max_per_category: int = 12
+    # The search box Nominatim answers is a rectangle, so a long city like Sochi reaches 40+ km along
+    # the coast and picks up mountains the visitor will not walk to. Objects further than this from the
+    # centre are not published; raise it for a city whose sights genuinely spread that far.
+    ingest_core_radius_km: float = 25.0
+    # Cities `python -m ingest --all` walks when no explicit list is passed.
+    ingest_cities_file: str = "data/cities.json"
+
+    # Пешеходная линия маршрута (server/geometry.py). Публичный демо-инстанс OSRM, ключа не просит;
+    # пустое значение = рисовать хорды между точками и помечать ответ как straight_line.
+    osrm_url: str = "https://router.project-osrm.org"
+    # Генерация маршрута интерактивна, поэтому timeout короткий: ждать ответа общего демо-сервера
+    # дольше — значит показать посетителю спиннер там, где честнее прямолинейная линия.
+    osrm_timeout: float = 6.0
+
     @field_validator("bot_user_id", mode="before")
     @classmethod
     def _blank_user_id(cls, value: object) -> object:
@@ -101,6 +134,12 @@ class Settings(BaseSettings):
     @property
     def is_sqlite(self) -> bool:
         return self.database_url.split("+", 1)[0].split("://", 1)[0] == "sqlite"
+
+    @property
+    def ingest_open(self) -> bool:
+        """Ingestion is dead until a token exists: an unauthenticated endpoint that writes the catalog
+        on the public internet would let anyone rewrite the demo data."""
+        return bool(self.ingest_token.strip())
 
     @property
     def sqlalchemy_url(self) -> str:

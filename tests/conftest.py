@@ -12,6 +12,7 @@ import asyncio
 import json
 import os
 import sys
+import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -32,16 +33,30 @@ os.environ["WEBHOOK_SECRET"] = "pytest-webhook-secret"
 os.environ["DATABASE_URL"] = TEST_DB_URL
 # Without this the lifespan would call platform-api2.max.ru on every test that builds an app.
 os.environ["AUTO_SETUP"] = "false"
+# Автокаталог — единственная запись в API: на машине разработчика он включён своим токеном из .env,
+# в тестах он выключен всегда, иначе 503-ветка зависела бы от локального файла.
+os.environ["INGEST_TOKEN"] = ""
+# Линия маршрута приходит с общего демо-сервера OSRM. Живой запрос из теста — это и медленнее, и
+# несопоставимо: числа линии меняются между прогонами. Ветки «сервер ответил» проверяются
+# подменой транспорта, а здесь — детерминированный fallback на хордах.
+os.environ["OSRM_URL"] = ""
 # Leftover developer settings would silently change what the CORS tests assert.
 os.environ.pop("CORS_ALLOW_ORIGINS", None)
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+import server.catalog as catalog_module  # noqa: E402
 import server.guides as guides_module  # noqa: E402
 from server.app import create_app  # noqa: E402
 from server.catalog import invalidate_cache, load_places  # noqa: E402
 from server.database import Base, engine  # noqa: E402
 from server.guides import invalidate_cache as invalidate_guides  # noqa: E402
+
+# `data/places.d/` holds whatever `python -m ingest` fetched on this machine, and it must not decide
+# how many places a test expects. The autouse fixture below redirects it per test — but a
+# session-scoped fixture is set up before any function fixture runs, so the same isolation has to
+# hold from the import of this file on. The path is one no code ever creates.
+catalog_module.EXTRA_DIR = Path(tempfile.gettempdir()) / f"maxbot-pytest-{os.getpid()}-places.d"
 
 
 @pytest.fixture(autouse=True)
@@ -66,8 +81,14 @@ def empty_database() -> Iterator[None]:
 
 
 @pytest.fixture(autouse=True)
-def uncached_data_files() -> Iterator[None]:
-    """Both seed loaders are `lru_cache`d, so a test that points one at a broken file must not leak."""
+def uncached_data_files(tmp_path, monkeypatch) -> Iterator[None]:
+    """Both seed loaders are `lru_cache`d, so a test that points one at a broken file must not leak.
+
+    The generated-cities directory is moved into the test's own `tmp_path` while we are at it: it is
+    gitignored and full of whatever `python -m ingest` found on this machine, and a suite whose
+    counts depend on that would pass here and fail in CI.
+    """
+    monkeypatch.setattr(catalog_module, "EXTRA_DIR", tmp_path / "places.d")
     invalidate_cache()
     invalidate_guides()
     yield

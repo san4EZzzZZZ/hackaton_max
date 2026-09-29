@@ -164,6 +164,12 @@
   animation: rise-in 0.4s ease both;
 }
 
+/* Ответ на тап по маркеру на карте. */
+.stopActive {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
 .order {
   flex: none;
   width: 24px;
@@ -238,6 +244,18 @@
   font-size: 14px;
   line-height: 1.45;
   color: #6b7280;
+}
+
+/* Честное предупреждение о линии: оно про качество данных, поэтому не тонет в списке точек. */
+.notice {
+  flex: none;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .footer {

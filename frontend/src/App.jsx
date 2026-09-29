@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import OnboardingScreen from './screens/OnboardingScreen.jsx'
-import RouteSetupScreen from './screens/RouteSetupScreen.jsx'
+import NavigationScreen from './screens/NavigationScreen.jsx'
 import RouteResultScreen from './screens/RouteResultScreen.jsx'
+import RouteSetupScreen from './screens/RouteSetupScreen.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('onboarding')
@@ -29,8 +30,13 @@ export default function App() {
       <RouteResultScreen
         route={route}
         onEdit={() => setScreen('setup')}
+        onStart={() => setScreen('navigation')}
       />
     )
+  }
+
+  if (screen === 'navigation' && route) {
+    return <NavigationScreen route={route} onExit={() => setScreen('result')} />
   }
 
   return <OnboardingScreen onStart={() => setScreen('setup')} />

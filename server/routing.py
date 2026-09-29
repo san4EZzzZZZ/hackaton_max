@@ -18,8 +18,8 @@ than the 3-hour route for the same categories.
 
 Density is not free: the catalog has cafés standing inside metres of the monuments next door, so a
 planner that only counts stops fills a whole day without leaving one address. `admissible` rejects
-pairs closer than `MIN_SPACING_M`, and among routes of equal fullness `_final_key` prefers the one that
-covers the most streets.
+pairs closer than `MIN_SPACING_M`, rejects a chain with a hop longer than `MAX_LEG_KM`, and among
+routes of equal fullness `_final_key` prefers the one that covers the most streets.
 """
 
 from __future__ import annotations
@@ -42,6 +42,12 @@ FIXED_TRANSFER_MINUTES = 3.0
 # stops of the day on it.
 MIN_SPACING_M = 150.0
 
+# The other end of the same problem. A generated catalog covers a whole city, and a city can be 40 km
+# of coastline: without a bound the search pairs two monuments 8 km apart, spends 55 of the 120
+# minutes on the path between them and calls the result a route. A hop longer than this is a trip
+# somewhere else, not a stop on this walk.
+MAX_LEG_KM = 2.5
+
 # The plan is the walk, the day is what the walk takes. Queues, a closed door and one exhibit that turns
 # out to be worth an hour all live outside `visit_duration_minutes`, and a route that fills the requested
 # hour to the last minute has nowhere to put them. So a slice of the requested time is never spent: the
@@ -53,7 +59,6 @@ TIME_RESERVE = 0.15
 def planned_minutes(duration_hours: float) -> int:
     """How much of the requested time the engine may spend on the plan; the rest is the reserve."""
     return int(duration_hours * 60 * (1 - TIME_RESERVE))
-
 
 # Selection is exponential in the number of stops, so it is explored as a beam: a few promising
 # starting objects, each keeping its `BEAM_WIDTH` best partial routes per extension step. The cap bounds
@@ -174,6 +179,19 @@ def _too_close(route: Sequence[Place]) -> bool:
     )
 
 
+def _too_far(route: Sequence[Place]) -> bool:
+    """Whether the walk as ordered contains a hop nobody makes on foot to see a monument.
+
+    Consecutive pairs, not every pair: a chain of eight stops can legitimately cross a city street for
+    street as long as each step is short. The walk from the visitor's own start is not one of the hops
+    either — where they began is their choice, not the planner's promise about the rest.
+    """
+    return any(
+        haversine_km(route[i].location, route[i + 1].location) > MAX_LEG_KM
+        for i in range(len(route) - 1)
+    )
+
+
 def _spread(route: Sequence[Place]) -> float:
     """The diameter of the stops in km: how much of the city the visit covers.
 
@@ -188,7 +206,7 @@ def _spread(route: Sequence[Place]) -> float:
 def admissible(
     route: Sequence[Place], time_budget: int, budget: float | None, start: Location | None = None
 ) -> bool:
-    """Whether a set of stops can be part of an answer: it fits the day, the money, and is not one address.
+    """Whether a set of stops can be part of an answer: it fits the day, the money, and is one walk.
 
     One predicate for the search, the fill pass and everything that audits them afterwards, so a gap the
     planner leaves behind is always a gap it can name a rule for.
@@ -197,7 +215,9 @@ def admissible(
         return False
     if budget is not None and _cost(route) > budget:
         return False
-    return not _too_close(route)
+    if _too_close(route):
+        return False
+    return not _too_far(route)
 
 
 def _step_key(
