@@ -34,10 +34,19 @@ function formatHours(minutes) {
   return h > 0 ? `~ ${h} ч ${m} мин` : `~ ${m} мин`
 }
 
+// Планировщик держит 15 % запроса непотраченным — на очереди и темп, а не на очередную точку. Без этой
+// строки «~ 3 ч 12 мин» под запросом на четыре часа читается как недобор, а не как обещанный запас.
+// Меньше пяти минут показывать нечего: это остаток округления, а не резерв.
+function formatReserve(minutes) {
+  if (typeof minutes !== 'number' || minutes < 5) return null
+  return `+ ${minutes} мин запаса`
+}
+
 export default function RouteResultScreen({ route, onEdit }) {
   const mapRef = useRef(null)
   const totalMinutes = Math.round(route.total_duration_hours * 60)
   const distanceLabel = formatDistance(route.total_distance_m)
+  const reserveLabel = formatReserve(route.slack_minutes)
 
   useEffect(() => {
     const map = new GlMap({
@@ -146,6 +155,7 @@ export default function RouteResultScreen({ route, onEdit }) {
               {distanceLabel} • {route.stops.length}{' '}
               {route.stops.length === 1 ? 'точка' : route.stops.length < 5 ? 'точки' : 'точек'}
             </span>
+            {reserveLabel && <span className={styles.statReserve}>{reserveLabel}</span>}
           </div>
         </div>
 

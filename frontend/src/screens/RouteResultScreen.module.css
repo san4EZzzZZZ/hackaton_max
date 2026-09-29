@@ -132,6 +132,16 @@
   white-space: nowrap;
 }
 
+/* Резерв — зелёным, как обещание «точно вовремя», но без подложки: в колонке статистики плашка
+   смотрелась бы вторым заголовком. */
+.statReserve {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #059669;
+  white-space: nowrap;
+}
+
 .stops {
   flex: 1 1 auto;
   min-height: 0;
