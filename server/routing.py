@@ -8,6 +8,10 @@ When the request names an origin, the chain starts there: the walk to the first 
 places too far to reach in the time given are dropped before selection, the place the origin stands on
 is not offered back as a stop, and the first stop is no longer pinned to the search's own choice.
 
+What gets budgeted is not the whole requested time: `TIME_RESERVE` of it stays unspent so the day has
+somewhere to put a queue, and every rule that asks "does this still fit" asks against the same
+`planned_minutes` number.
+
 Selection is a beam search rather than a greedy step because a greedy step cannot see ahead: on the
 real catalog it spent 150 of 240 minutes on one theatre and returned a 4-hour route with fewer stops
 than the 3-hour route for the same categories.
@@ -37,6 +41,19 @@ FIXED_TRANSFER_MINUTES = 3.0
 # different walk. Closer than this the pair counts as one place, and the planner will not spend two
 # stops of the day on it.
 MIN_SPACING_M = 150.0
+
+# The plan is the walk, the day is what the walk takes. Queues, a closed door and one exhibit that turns
+# out to be worth an hour all live outside `visit_duration_minutes`, and a route that fills the requested
+# hour to the last minute has nowhere to put them. So a slice of the requested time is never spent: the
+# product asks for 15–20 %, and 15 % is the one that still costs only a stop on a three- and four-hour
+# day (20 % takes one back from a two-hour walk as well).
+TIME_RESERVE = 0.15
+
+
+def planned_minutes(duration_hours: float) -> int:
+    """How much of the requested time the engine may spend on the plan; the rest is the reserve."""
+    return int(duration_hours * 60 * (1 - TIME_RESERVE))
+
 
 # Selection is exponential in the number of stops, so it is explored as a beam: a few promising
 # starting objects, each keeping its `BEAM_WIDTH` best partial routes per extension step. The cap bounds
@@ -89,7 +106,7 @@ def filter_candidates(places: list[Place], request: RouteRequest) -> list[_Candi
     """
     wanted_categories = {category.strip().lower() for category in request.categories}
     wanted_tags = normalize_tags(request.tags)
-    time_budget = int(request.duration_hours * 60)
+    time_budget = planned_minutes(request.duration_hours)
     start = request.start
 
     result: list[_Candidate] = []
@@ -357,9 +374,10 @@ def assemble_route(
     """Build an ordered route; returns stops, total minutes and total cost.
 
     The minutes and the distance returned here start at `request.start` when the client sent one, so the
-    walk it reports is the walk the visitor actually makes.
+    walk it reports is the walk the visitor actually makes — and they stop `TIME_RESERVE` of the asked
+    time before the clock they gave runs out.
     """
-    time_budget = int(request.duration_hours * 60)
+    time_budget = planned_minutes(request.duration_hours)
     budget = request.max_budget
     start = request.start
 

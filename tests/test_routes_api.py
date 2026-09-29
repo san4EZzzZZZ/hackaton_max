@@ -105,6 +105,24 @@ def test_a_walk_without_an_origin_says_so(client: TestClient) -> None:
     assert route["start"] is None
 
 
+def test_the_answer_reports_time_it_hands_back(client: TestClient) -> None:
+    """`slack_minutes` is the number the screen shows as «запас», so it has to be a real slice.
+
+    Until the reserve existed this field was an accident: the generator spent the budget to the minute and
+    the leftover was whatever rounding had left behind — 10 minutes on a four-hour day, which is nothing
+    in front of a closed door. The client cannot tell those two situations apart from the shape of the
+    JSON, so the floor is pinned here rather than inferred from the routing tests.
+    """
+    for hours in (2.0, 4.0, 8.0):
+        route = generate(client, duration_hours=hours).json()
+        requested = int(hours * 60)
+        assert route["total_duration_minutes"] <= requested, "the day it asked for is the ceiling"
+        assert route["slack_minutes"] >= int(requested * 0.15), (
+            f"a {hours} h walk hands back {route['slack_minutes']} min"
+        )
+        assert route["slack_minutes"] == requested - route["total_duration_minutes"]
+
+
 def test_a_start_far_enough_away_empties_the_catalog(client: TestClient) -> None:
     """Reaching nothing is the same 404 as an unknown category, and the same request without a start
     still returns a route — so the status points at the start, not at the city."""
