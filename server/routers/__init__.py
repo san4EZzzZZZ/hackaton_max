@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from server.routers import guides, places, routes, saved_routes
+from server.routers import analytics, guides, places, routes, saved_routes
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(places.router)
@@ -16,5 +16,8 @@ api_router.include_router(guides.router)
 # whichever router is included first. Only GET /routes/generate means anything else: an integer id.
 api_router.include_router(routes.router)
 api_router.include_router(saved_routes.router)
+# Telemetry of its own: it stores what the Mini App reports and reads §8 back out of it. It shares no
+# code with the generator — an event about a route is not a fact the planner has to know.
+api_router.include_router(analytics.router)
 
 __all__ = ["api_router"]

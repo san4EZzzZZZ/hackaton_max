@@ -99,6 +99,41 @@ class SavedRoute(Base):
         return f"<SavedRoute {self.route_id} {self.city} ({self.stop_count} stops)>"
 
 
+class AnalyticsEvent(Base):
+    """One §8 analytics event: what the visitor did, stamped by the server, never by the client.
+
+    The seven names come from the product spec; the row is deliberately narrow and every column that
+    carries meaning is typed. Free-form JSON would have been easier to write and impossible to
+    aggregate honestly a week into the pilot.
+    """
+
+    __tablename__ = "analytics_events"
+
+    event_id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
+    name: Mapped[str] = mapped_column(String(32), index=True)
+    # Client-supplied and unverified, exactly like `user_id` on a saved route — see the router docstring.
+    session_id: Mapped[str] = mapped_column(String(64), index=True)
+    user_id: Mapped[int | None] = mapped_column(BigInteger, index=True)
+    # The generator's uuid4, kept as text: it links events to each other but to no row of its own.
+    route_id: Mapped[str | None] = mapped_column(String(64))
+    place_id: Mapped[str | None] = mapped_column(String(64))
+    # The three numbers the pilot table needs beyond a name: usefulness, time adherence, errors.
+    rating: Mapped[int | None] = mapped_column(Integer)
+    requested_minutes: Mapped[int | None] = mapped_column(Integer)
+    actual_minutes: Mapped[int | None] = mapped_column(Integer)
+    detail: Mapped[str | None] = mapped_column(Text)
+    # Server time on purpose: §8 measures intervals *between* events of one session, and a clock the
+    # Mini App runs on would put those intervals at the mercy of the device that reports them.
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, server_default=func.now(), index=True
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging helper
+        return f"<AnalyticsEvent {self.name} session={self.session_id}>"
+
+
 engine: AsyncEngine = create_async_engine(
     settings.sqlalchemy_url,
     echo=False,
@@ -280,3 +315,80 @@ async def list_saved_routes(
         statement = statement.limit(limit)
     rows = (await session.execute(statement)).scalars().all()
     return list(rows), int(total)
+
+
+async def log_event(
+    session: AsyncSession,
+    *,
+    name: str,
+    session_id: str,
+    user_id: int | None = None,
+    route_id: str | None = None,
+    place_id: str | None = None,
+    rating: int | None = None,
+    requested_minutes: int | None = None,
+    actual_minutes: int | None = None,
+    detail: str | None = None,
+) -> AnalyticsEvent:
+    """Append one analytics event; its id and timestamp come back from this function, not the client."""
+    row = AnalyticsEvent(
+        name=name,
+        session_id=session_id,
+        user_id=user_id,
+        route_id=route_id,
+        place_id=place_id,
+        rating=rating,
+        requested_minutes=requested_minutes,
+        actual_minutes=actual_minutes,
+        detail=detail,
+        occurred_at=_utcnow(),
+    )
+    session.add(row)
+    await session.flush()
+    return row
+
+
+async def list_events(
+    session: AsyncSession,
+    *,
+    name: str | None = None,
+    session_id: str | None = None,
+    limit: int | None = None,
+    offset: int = 0,
+) -> tuple[list[AnalyticsEvent], int]:
+    """Newest first, whole-selection count included — the same shape `list_saved_routes` has."""
+    conditions = []
+    if name is not None:
+        conditions.append(AnalyticsEvent.name == name)
+    if session_id is not None:
+        conditions.append(AnalyticsEvent.session_id == session_id)
+    total = (
+        await session.execute(
+            select(func.count()).select_from(AnalyticsEvent).where(*conditions)
+        )
+    ).scalar_one()
+    statement = (
+        select(AnalyticsEvent)
+        .where(*conditions)
+        .order_by(AnalyticsEvent.event_id.desc())
+        .offset(offset)
+    )
+    if limit is not None:
+        statement = statement.limit(limit)
+    rows = (await session.execute(statement)).scalars().all()
+    return list(rows), int(total)
+
+
+async def events_since(session: AsyncSession, since: datetime) -> list[AnalyticsEvent]:
+    """Every event of the reporting window, oldest first — the whole input of the funnel arithmetic.
+
+    Read into Python rather than aggregated in SQL: the seven §8 numbers are session-scoped ratios, and
+    a portable query for them would be a window function per metric. A two-week pilot in one city is
+    thousands of rows, so the fetch is cheap and the arithmetic stays testable.
+    """
+    statement = (
+        select(AnalyticsEvent)
+        .where(AnalyticsEvent.occurred_at >= since)
+        .order_by(AnalyticsEvent.occurred_at, AnalyticsEvent.event_id)
+    )
+    return list((await session.execute(statement)).scalars().all())
