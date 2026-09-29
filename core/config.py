@@ -88,11 +88,16 @@ class Settings(BaseSettings):
     # Cities `python -m ingest --all` walks when no explicit list is passed.
     ingest_cities_file: str = "data/cities.json"
 
-    # Пешеходная линия маршрута (server/geometry.py). Публичный демо-инстанс OSRM, ключа не просит;
-    # пустое значение = рисовать хорды между точками и помечать ответ как straight_line.
-    osrm_url: str = "https://router.project-osrm.org"
-    # Генерация маршрута интерактивна, поэтому timeout короткий: ждать ответа общего демо-сервера
-    # дольше — значит показать посетителю спиннер там, где честнее прямолинейная линия.
+    # Пешеходная линия маршрута (server/geometry.py). Публичный инстанс OSRM, ключа не просит; пустое
+    # значение = рисовать хорды между точками и помечать ответ как straight_line.
+    #
+    # Профиль выбирается хостом, а не словом в пути: `router.project-osrm.org` отдаёт автомобильную
+    # графу и на `/route/v1/foot/`, и на `/route/v1/driving/` (замерено на Ростове: переход в 178 м
+    # по прямой он считает в 1460 м, потому что объезжает пешеходную Большую Садовую). Пешеходная
+    # графа живёт на `routed-foot` — там те же точки дают 178 м.
+    osrm_url: str = "https://routing.openstreetmap.de/routed-foot"
+    # Генерация маршрута интерактивна, поэтому timeout короткий: ждать ответа общего сервера дольше —
+    # значит показать посетителю спиннер там, где честнее прямолинейная линия.
     osrm_timeout: float = 6.0
 
     @field_validator("bot_user_id", mode="before")
