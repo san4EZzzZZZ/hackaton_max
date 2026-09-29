@@ -19,12 +19,14 @@ from server.routing import (
     FIXED_TRANSFER_MINUTES,
     MAX_SEARCH_STOPS,
     MIN_SPACING_M,
+    TIME_RESERVE,
     TRANSIT_KMH,
     admissible,
     assemble_route,
     filter_candidates,
     haversine_km,
     optimize_order,
+    planned_minutes,
     travel_minutes,
     within_radius_km,
     _chain_minutes,
@@ -139,7 +141,10 @@ def test_selection_applies_every_hard_constraint() -> None:
     assert ids(categories=["Парк"]) == {"park"}
     assert ids(categories=["парк", ""]) == {"park"}, "filter is case-insensitive and drops blanks"
     assert ids(is_pushkin_card_only=True) == {"pushkin"}
-    assert ids(duration_hours=1) == {"cheap", "pricey", "park", "pushkin"}, "300 min cannot fit"
+    # The clock filter is the plan, not the wish: an hour of asking buys 51 minutes of walking, and a
+    # 60-minute visit does not fit inside it any more than a 120-minute one does.
+    assert ids(duration_hours=1) == set(), "60 min of visiting does not fit a 51 min plan"
+    assert ids(duration_hours=2) == {"cheap", "pricey", "park", "pushkin"}, "120 min cannot fit 102"
     assert ids(city="Москва") == {"far-city"}
     assert ids(categories=["несуществующая"]) == set()
 
@@ -186,11 +191,15 @@ def test_the_priciest_object_is_dropped_before_the_first_is_reached() -> None:
 
 
 def test_a_landmark_worth_visiting_alone_does_not_eat_the_hour_it_blocks() -> None:
-    """One object rated 5.0 sits 1.7 km from three small ones rated 4.0, and an hour fits all three.
+    """One object rated 5.0 sits 1.7 km from three small ones rated 4.0, and the plan fits all three.
 
     A step that appends the best value first starts at the landmark and then cannot pay for the walk to
-    the cluster: one stop out of 60 minutes. Searching the cluster as a starting point returns three
-    stops in 57, which is what the hour was asking for.
+    the cluster: two stops out of the day. Searching the cluster as a starting point returns three stops
+    in 57, which is what the time was asking for.
+
+    Half an hour ago this scene ran on one hour, and it no longer can: three stops cost 45 minutes of
+    visiting plus two transfers of five at the closest legal spacing, which is more than the 51 minutes a
+    reserved hour plans for. The point of the test is the greedy step, not the number sixty.
     """
     landmark = place("landmark", rating=5.0, minutes=30, lat=47.235, lon=39.72)
     # A short step apart rather than three objects at one address, which the planner now reads as one
@@ -199,15 +208,17 @@ def test_a_landmark_worth_visiting_alone_does_not_eat_the_hour_it_blocks() -> No
         place(name, rating=4.0, minutes=15, lon=39.72 + 0.003 * index)
         for index, name in enumerate("abc")
     ]
-    payload = request(duration_hours=1.0)
+    hours = 1.5
+    payload = request(duration_hours=hours)
 
     stops, minutes, _cost = assemble_route(filter_candidates([landmark, *cluster], payload), payload)
 
     assert [stop.place.id for stop in stops] == ["a", "b", "c"]
     step = travel_minutes(cluster[0].location, cluster[1].location)
     assert minutes == 3 * 15 + 2 * step, "three short visits and the two transfers between them"
-    assert travel_minutes(landmark.location, cluster[0].location) + 30 + 15 > 60, (
-        "the scene itself: starting at the landmark does not fit into this hour"
+    head = travel_minutes(landmark.location, cluster[0].location)
+    assert head + 30 + 2 * (step + 15) > planned_minutes(hours), (
+        "the scene itself: once the walk to the landmark is paid for, the day loses a stop to it"
     )
 
 
@@ -307,7 +318,10 @@ def test_the_walk_begins_with_the_stop_nearest_the_visitor() -> None:
     Without a start both directions of the same set cost the same, so nothing in the ranking decides
     between them; the head hop breaks the tie, and it is also what makes the far end unaffordable here.
     """
-    line = [place(f"p{index}", lat=47.229 + 0.009 * index, lon=39.72, minutes=20) for index in range(3)]
+    # Short visits because the plan is what an hour and a half of walking buys, not the two hours asked
+    # for: at 20 minutes each the third place costs 108 of the 102 planned, and this test would be about
+    # the reserve instead of about the head hop.
+    line = [place(f"p{index}", lat=47.229 + 0.009 * index, lon=39.72, minutes=15) for index in range(3)]
     start = Location(lat=47.22, lon=39.72)
     payload = request(duration_hours=2, start_lat=start.lat, start_lon=start.lon)
 
@@ -536,6 +550,32 @@ def test_the_requests_the_mini_app_opens_with_are_measured_in_stops(
         )
 
 
+@pytest.mark.parametrize("start", STARTS, ids=_start_id)
+def test_the_plan_stops_short_of_the_hour_by_the_reserve(start: Location | None) -> None:
+    """A day that fills the requested hour to the last minute has nowhere to put a queue.
+
+    §11 of the product spec names the risk («маршрут не укладывается во время») and the pilot metric
+    that follows from it — «соответствие времени ±15 %». Both are unreachable while the generator spends
+    the whole budget, so `TIME_RESERVE` of the request is never planned away, and this is the test that
+    notices the moment it is.
+
+    The ceiling is written as a literal percentage for the same reason the spacing floor is: a test that
+    derived it from `planned_minutes` would follow the constant to zero and still pass. The floor under
+    the ceiling is what keeps the assertion honest the other way round — an engine that gave up early
+    would fit inside any reserve, and a walk that fills its plan is the thing being measured.
+    """
+    for hours in DURATIONS:
+        stops, minutes, _cost = walk(hours, start=start)
+        assert stops, f"{hours} h from {start or 'no origin'} returned nothing to walk to"
+        assert minutes <= int(hours * 60 * 0.85), (
+            f"{hours} h ({int(hours * 60)} min) spent {minutes} min — the reserve was eaten"
+        )
+        assert minutes > int(hours * 60 * 0.85) - 45, (
+            f"{hours} h left {int(hours * 60 * 0.85) - minutes} min of the plan empty; "
+            "that is not a reserve, that is a generator that stopped looking"
+        )
+
+
 def test_a_day_longer_than_the_search_cap_is_still_filled() -> None:
     """`MAX_SEARCH_STOPS` bounds the beam, not the route — filling the gaps is what goes past it.
 
@@ -562,7 +602,10 @@ def test_nothing_that_would_have_fit_is_left_behind(start: Location | None) -> N
         stops, _minutes, _cost = walk(hours, categories, start=start)
         order = [stop.place for stop in stops]
         chosen = {stop.place.id for stop in stops}
-        budget = int(hours * 60)
+        # The audit asks the same question the planner asked, which means the same number: a place left
+        # out because it did not fit into the *plan* is not a gap, even though the requested hour still
+        # had room for it. That room is the reserve, and it is spent on queues, not on stops.
+        budget = planned_minutes(hours)
         origin = {} if start is None else {"start_lat": start.lat, "start_lon": start.lon}
         # No money cap in these requests, so time and spacing alone decide whether a gap was real.
         candidates = filter_candidates(
@@ -617,7 +660,9 @@ def test_the_time_and_the_distance_fields_describe_the_same_walk() -> None:
     # Four hours of walking is a walk, not a lap of one square and not a marathon. The floor sits above
     # the radius of the densest cluster in the catalog: below it the planner is back to spending the hour
     # on addresses inside one arcade, which is what the spacing rule in `admissible` exists to prevent.
-    assert 2.5 < sum(stop.distance_m_from_prev for stop in stops) / 1000 < 6
+    # The reserve took it from 3,05 km over eight stops to 2,35 km over seven, and the floor moved with
+    # it — the promise being measured is still kilometres of city, not minutes of arithmetic.
+    assert 2.2 < sum(stop.distance_m_from_prev for stop in stops) / 1000 < 6
 
 
 def test_two_stops_are_never_the_same_address() -> None:
