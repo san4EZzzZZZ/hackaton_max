@@ -98,6 +98,45 @@ button {
   }
 }
 
+/* Нумерованные точки маршрута. Узел создаёт lib/map.js и вешает его в pane MapLibre — вне
+   React-дерева, поэтому класс глобальный, а не CSS-модуль экрана. */
+.stop-marker {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #10b981;
+  border: 2.5px solid #fff;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 3px 9px rgba(17, 24, 39, 0.3);
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.stop-marker:disabled {
+  cursor: default;
+}
+
+.stop-marker[data-state='active'] {
+  background: var(--green-900);
+  transform: scale(1.25);
+  box-shadow: 0 5px 14px rgba(17, 24, 39, 0.38);
+}
+
+.stop-marker[data-state='reached'] {
+  background: #9ca3af;
+}
+
+.stop-marker[data-state='target'] {
+  background: #2563eb;
+  transform: scale(1.2);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

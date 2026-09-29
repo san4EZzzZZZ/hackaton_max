@@ -1,40 +1,81 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import PrimaryButton from '../components/PrimaryButton.jsx'
 import { ArrowLeftIcon, SwapIcon } from '../components/icons.jsx'
 import { formatMinutes } from '../lib/format.js'
-import { addDots, addLine, createMap, fitTo, GREEN, GREY } from '../lib/map.js'
+import { addLine, addStartDot, createMap, fitTo, removeMarkers, syncMarkers, GREEN, GREY } from '../lib/map.js'
 import { formatDistance, legCaption, pluralStops, pointOf, routePolyline } from '../lib/route.js'
 import styles from './RouteResultScreen.module.css'
 
-const START_COLOR = '#3B82F6'
-
 export default function RouteResultScreen({ route, onEdit, onStart }) {
+  const containerRef = useRef(null)
   const mapRef = useRef(null)
+  const markersRef = useRef(new Map())
+  const listRef = useRef(null)
+  const [ready, setReady] = useState(false)
+  const [activeId, setActiveId] = useState(null)
   // «по тротуарам» и «напрямую» — это одно и то же число из разных миров, и посетитель должен видеть,
   // из какого: API сам говорит, удалось ли получить линию у роутера.
   const measured = route.geometry_source === 'osrm'
   const distanceMeters = route.total_walk_distance_m ?? route.total_distance_m
 
   useEffect(() => {
-    const map = createMap(mapRef.current)
+    setActiveId(null)
+    const map = createMap(containerRef.current)
     const line = routePolyline(route)
     const bottomInset = Math.round(window.innerHeight * 0.62) + 24
     map.on('load', () => {
       if (line.length >= 2) {
-        addLine(map, 'route-line', line, { dashed: !measured, color: measured ? GREEN : GREY })
+        addLine(map, 'route-line', line, {
+          dashed: !measured,
+          color: measured ? GREEN : GREY,
+          width: 5,
+        })
       }
-      addDots(map, 'route-stops', route.stops.map(pointOf))
-      if (route.start) {
-        addDots(map, 'route-start', [[route.start.lon, route.start.lat]], START_COLOR)
-      }
+      if (route.start) addStartDot(map, [route.start.lon, route.start.lat])
       fitTo(map, line.length >= 2 ? line : route.stops.map(pointOf), bottomInset)
+      mapRef.current = map
+      setReady(true)
     })
-    return () => map.remove()
+    return () => {
+      removeMarkers(markersRef.current)
+      map.remove()
+      mapRef.current = null
+      setReady(false)
+    }
   }, [route, measured])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready) return
+    syncMarkers(
+      map,
+      markersRef.current,
+      route.stops.map((stop, index) => ({
+        id: stop.place.id,
+        coord: pointOf(stop),
+        label: String(index + 1),
+        state: stop.place.id === activeId ? 'active' : 'idle',
+        title: `Точка ${index + 1}: ${stop.place.title}`,
+      })),
+      setActiveId,
+    )
+  }, [ready, activeId, route])
+
+  // Тап по маркеру подсвечивает карточку и подвозит шторку к ней: на длинном маршруте подсветка
+  // иначе остаётся за пределами видимого списка.
+  useEffect(() => {
+    if (!activeId) return
+    for (const node of listRef.current?.children ?? []) {
+      if (node.dataset.stop === activeId) {
+        node.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        break
+      }
+    }
+  }, [activeId])
 
   return (
     <div className={styles.screen}>
-      <div className={styles.map} ref={mapRef} />
+      <div className={styles.map} ref={containerRef} />
 
       <button type="button" className={styles.back} onClick={onEdit} aria-label="Назад к настройке">
         <ArrowLeftIcon />
@@ -67,9 +108,13 @@ export default function RouteResultScreen({ route, onEdit, onStart }) {
         {route.stops.length === 0 ? (
           <p className={styles.empty}>Маршрут пуст — попробуйте изменить время или интересы.</p>
         ) : (
-          <ol className={styles.stops}>
+          <ol className={styles.stops} ref={listRef}>
             {route.stops.map((stop, index) => (
-              <li key={stop.place.id} className={styles.stop}>
+              <li
+                key={stop.place.id}
+                data-stop={stop.place.id}
+                className={`${styles.stop} ${stop.place.id === activeId ? styles.stopActive : ''}`}
+              >
                 <span className={styles.order}>{stop.order}</span>
                 <div className={styles.stopText}>
                   <span className={styles.stopTitle}>{stop.place.title}</span>

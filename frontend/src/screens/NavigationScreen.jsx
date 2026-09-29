@@ -3,7 +3,7 @@ import PrimaryButton from '../components/PrimaryButton.jsx'
 import { ArrowLeftIcon } from '../components/icons.jsx'
 import { api } from '../lib/api.js'
 import { formatMinutes, formatPrice } from '../lib/format.js'
-import { addDots, addLine, createMap, fitTo, setDots, setLine, GREY, TARGET } from '../lib/map.js'
+import { addLine, createMap, fitTo, removeMarkers, setLine, syncMarkers, GREY } from '../lib/map.js'
 import {
   formatTime,
   isHere,
@@ -21,6 +21,7 @@ const SHEET_INSET = () => Math.round(window.innerHeight * 0.5) + 24
 export default function NavigationScreen({ route, onExit }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
+  const markersRef = useRef(new Map())
   const [ready, setReady] = useState(false)
   const [nextIndex, setNextIndex] = useState(0)
   // walking — идем к точке; arrived — стояли у неё, читаем справку; done — прогулка закончена.
@@ -35,20 +36,30 @@ export default function NavigationScreen({ route, onExit }) {
   const current = phase === 'done' ? [] : pathLine(route, nextIndex, nextIndex)
   const ahead = phase === 'done' ? [] : pathLine(route, nextIndex + 1, last)
 
+  const markerState = (index) => {
+    if (phase === 'done' || index < nextIndex) return 'reached'
+    return index === nextIndex ? 'target' : 'idle'
+  }
+
+  // Тап по точке отвечает «я передумал и иду сюда»: маршрут тот же, меняется только шаг.
+  const jumpTo = (_id, index) => {
+    setNextIndex(index)
+    setPhase('walking')
+  }
+
   useEffect(() => {
     const map = createMap(containerRef.current)
     map.on('load', () => {
-      addLine(map, 'path-ahead', ahead, { color: GREY, width: 3 })
-      addLine(map, 'path-current', current, { width: 5 })
-      addDots(map, 'dots-reached', [], GREY)
-      addDots(map, 'dots-ahead', stops.map(pointOf))
-      addDots(map, 'dots-target', [pointOf(next)], TARGET)
+      addLine(map, 'path-ahead', ahead, { color: GREY, width: 3.5 })
+      addLine(map, 'path-current', current, { width: 6 })
       mapRef.current = map
       setReady(true)
     })
     return () => {
+      removeMarkers(markersRef.current)
       map.remove()
       mapRef.current = null
+      setReady(false)
     }
     // Карта строится один раз на весь экран: пересобирать её на каждой смене точки — значит каждый раз
     // терять zoom и положение, которые посетитель задал себе пальцем.
@@ -60,9 +71,18 @@ export default function NavigationScreen({ route, onExit }) {
     if (!map || !ready) return
     setLine(map, 'path-ahead', ahead)
     setLine(map, 'path-current', current)
-    setDots(map, 'dots-reached', stops.slice(0, nextIndex).map(pointOf))
-    setDots(map, 'dots-ahead', phase === 'done' ? [] : stops.slice(nextIndex).map(pointOf))
-    setDots(map, 'dots-target', phase === 'done' || !next ? [] : [pointOf(next)])
+    syncMarkers(
+      map,
+      markersRef.current,
+      stops.map((stop, index) => ({
+        id: stop.place.id,
+        coord: pointOf(stop),
+        label: String(index + 1),
+        state: markerState(index),
+        title: `Точка ${index + 1}: ${stop.place.title}`,
+      })),
+      phase === 'done' ? null : jumpTo,
+    )
     fitTo(map, current.length >= 2 ? current : stops.map(pointOf), SHEET_INSET())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, nextIndex, phase])
