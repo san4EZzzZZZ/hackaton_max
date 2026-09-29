@@ -53,12 +53,14 @@ CITY = City(
 )
 
 
-def element(osm_id: int = 1, name: str = "Музей", **tags: str) -> Element:
+def element(
+    osm_id: int = 1, name: str = "Музей", *, lat: float = 55.79, lon: float = 49.11, **tags: str
+) -> Element:
     return Element(
         osm_type="node",
         osm_id=osm_id,
-        lat=55.79,
-        lon=49.11,
+        lat=lat,
+        lon=lon,
         tags={"name": name, **tags},
     )
 
@@ -93,6 +95,25 @@ def test_an_unremarkable_church_is_not_a_destination() -> None:
 
     cathedral = element(2, "Казанский собор", amenity="place_of_worship", wikidata="Q4190492")
     assert worth_showing(ARCHITECTURE, cathedral.tags) is True
+
+
+def test_a_waterfall_is_not_architecture() -> None:
+    """`tourism=attraction` sits on nature too, and «Архитектура» is where a visitor is sent for buildings.
+
+    Real Sochi answers that came out of this rule: 33 водопада and a nudist beach, both ranked as
+    architecture because somebody tagged them an attraction. A viewpoint on a mountain keeps its place
+    — it arrives as Парк, which is what people walk up it for.
+    """
+    falls = element(3, "Агура", tourism="attraction", natural="waterfall")
+    assert category_of(falls.tags) == ARCHITECTURE
+    assert worth_showing(ARCHITECTURE, falls.tags) is False
+
+    beach = element(4, "Нудистский пляж", tourism="attraction", leisure="beach")
+    assert worth_showing(ARCHITECTURE, beach.tags) is False
+
+    viewpoint = element(5, "Смотровая площадка", tourism="viewpoint", natural="peak")
+    assert category_of(viewpoint.tags) == PARK
+    assert worth_showing(PARK, viewpoint.tags) is True
 
 
 def test_every_interest_carries_chips_tags() -> None:
@@ -195,6 +216,36 @@ def test_per_category_cap_lets_a_small_category_survive() -> None:
     assert categories.count("Памятник") == 3
 
 
+def test_the_total_limit_does_not_empty_the_least_attested_category() -> None:
+    """Кафе loses every global slot it is cut globally: cafés have no Wikidata item and no photo.
+
+    The live proof was Kazan after the mood balance landed: the category cap gave café twelve places,
+    the city limit of 60 then sorted everything by attestation and left one coffee house in the file.
+    The total is now dealt out one object per category in turn, so the filters the client offers always
+    have something behind them.
+    """
+    monuments = tuple(
+        element(
+            index,
+            f"Памятник {index}",
+            historic="monument",
+            wikidata=f"Q{100 + index}",
+            opening_hours="24/7",
+        )
+        for index in range(20)
+    )
+    cafes = tuple(
+        element(200 + index, f"Кофейня {index}", amenity="cafe", lat=55.79 + 0.001 * index)
+        for index in range(20)
+    )
+    candidates = build_candidates(CITY, {"Памятник": monuments, CAFE: cafes}, {}, {})
+    chosen = select(candidates, INTERESTS, total_limit=10, per_category=8)
+
+    categories = [candidate.place.category for candidate in chosen]
+    assert len(chosen) == 10
+    assert categories.count(CAFE) == 5, categories
+
+
 def test_one_chain_branch_per_brand() -> None:
     elements = tuple(
         element(index, f"Кофейня «Анни» {index}", amenity="cafe", brand="Анни")
@@ -203,6 +254,78 @@ def test_one_chain_branch_per_brand() -> None:
     candidates = build_candidates(CITY, {CAFE: elements}, {}, {})
     chosen = select(candidates, INTERESTS, total_limit=20)
     assert len(chosen) == 1
+
+
+def test_both_cafe_moods_survive_the_category_cap() -> None:
+    """A city whose twelve café slots are all restaurants has no «Взять кофе» left.
+
+    Ranked by attestation alone, the restaurants win: they carry opening hours and websites, the
+    coffee houses do not. Kazan came out that way — one place behind the coffee chip, so the chip's
+    route was a single stop. The cap now fills alternately from the two mood groups.
+    """
+    restaurants = tuple(
+        element(
+            index,
+            f"Ресторан {index}",
+            amenity="restaurant",
+            website=f"https://rest{index}.ru",
+            opening_hours="Mo-Fr 12:00-23:00",
+        )
+        for index in range(6)
+    )
+    coffee = tuple(
+        element(100 + index, f"Кофейня {index}", amenity="cafe") for index in range(6)
+    )
+    candidates = build_candidates(CITY, {CAFE: restaurants + coffee}, {}, {})
+    chosen = select(candidates, INTERESTS, total_limit=20, per_category=4)
+
+    tags = [candidate.place.tags[0] for candidate in chosen]
+    assert len(chosen) == 4
+    assert tags.count("coffee") == 2, tags
+    assert tags.count("food") == 2, tags
+
+
+def test_objects_outside_the_core_are_not_published() -> None:
+    """The bounding box is a rectangle, so a long city's box reaches places nobody walks to.
+
+    Sochi's answer included a waterfall 31 km and a viaduct 48 km from the centre. `rating` and the
+    per-category ranking were already pushing them down; a catalog that still lists them hands the
+    route planner stops whose first hop is an hour and a half.
+    """
+    nearby = element(1, "Близкое место", historic="monument", lat=55.80, lon=49.12)
+    distant = element(2, "Далёкое место", historic="monument", lat=56.05, lon=49.11)
+
+    clipped = build_candidates(CITY, {"Памятник": (nearby, distant)}, {}, {}, core_radius_km=25)
+    assert [candidate.place.title for candidate in clipped] == ["Близкое место"]
+    unclipped = build_candidates(CITY, {"Памятник": (nearby, distant)}, {}, {})
+    assert len(unclipped) == 2
+
+
+def test_a_stop_is_budgeted_for_the_walk_not_for_the_collection() -> None:
+    """90 minutes for a museum turned a two-hour request into a one-stop answer.
+
+    OSM does not know how long a visit takes, and the number the planner budgets against is ours. It
+    is written as the time a self-guided walk spends at a door, because the alternative — the 2-3
+    hours a museum's own site recommends — is a different product: the record still says plainly in
+    `unverified_fields` that the duration was inferred.
+    """
+    candidates = build_candidates(
+        CITY,
+        {
+            MUSEUM: (element(1, "Музей", tourism="museum"),),
+            CAFE: (element(2, "Кафе", amenity="cafe"),),
+            ARCHITECTURE: (element(3, "Башня", historic="tower"),),
+        },
+        {},
+        {},
+    )
+    durations = {candidate.place.category: candidate.place.visit_duration_minutes for candidate in candidates}
+
+    assert durations[MUSEUM] == 45
+    assert durations[CAFE] == 30
+    assert durations[ARCHITECTURE] == 20
+    # A two-hour request has to be able to hold three of them plus the walking between.
+    assert sum(sorted(durations.values())) <= 120
 
 
 # --- storage and the catalog merge -----------------------------------------

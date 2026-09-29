@@ -91,7 +91,13 @@ async def ingest_city(
         }
         pictures = await fetch_thumbs(client, config.commons_api_url, titles)
 
-        candidates = build_candidates(city, grouped, entities, pictures)
+        candidates = build_candidates(
+            city,
+            grouped,
+            entities,
+            pictures,
+            core_radius_km=config.ingest_core_radius_km,
+        )
         chosen = select(
             candidates,
             INTERESTS,

@@ -81,6 +81,10 @@ class Settings(BaseSettings):
     ingest_request_gap: float = 5.0
     ingest_max_places_per_city: int = 60
     ingest_max_per_category: int = 12
+    # The search box Nominatim answers is a rectangle, so a long city like Sochi reaches 40+ km along
+    # the coast and picks up mountains the visitor will not walk to. Objects further than this from the
+    # centre are not published; raise it for a city whose sights genuinely spread that far.
+    ingest_core_radius_km: float = 25.0
     # Cities `python -m ingest --all` walks when no explicit list is passed.
     ingest_cities_file: str = "data/cities.json"
 

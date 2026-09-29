@@ -77,6 +77,12 @@ class Interest:
 
 # Ordered: an element is claimed by the first interest that matches it, so the tag that says what
 # people come *for* has to precede the tag that says what the bricks are.
+#
+# `visit_duration_minutes` is what the planner budgets a stop for, so it is written for the walk a
+# visitor is offered, not for the whole collection: a museum's own website says 2-3 hours, and a
+# route that believed it returned one stop for a two-hour request. These are the "look, read the
+# plaque, move on" minutes a self-guided walk spends, and every generated record still lists the
+# field under `provenance.unverified_fields`.
 INTERESTS: tuple[Interest, ...] = (
     Interest(
         category=MUSEUM,
@@ -85,7 +91,7 @@ INTERESTS: tuple[Interest, ...] = (
             Rule("tourism", "zoo"),
         ),
         tags=("culture", "photo"),
-        visit_duration_minutes=90,
+        visit_duration_minutes=45,
     ),
     Interest(
         category=THEATRE,
@@ -94,7 +100,7 @@ INTERESTS: tuple[Interest, ...] = (
             Rule("amenity", "concert_hall"),
         ),
         tags=("culture",),
-        visit_duration_minutes=120,
+        visit_duration_minutes=90,
     ),
     Interest(
         category=GALLERY,
@@ -103,7 +109,7 @@ INTERESTS: tuple[Interest, ...] = (
             Rule("tourism", "artwork"),
         ),
         tags=("culture", "photo"),
-        visit_duration_minutes=60,
+        visit_duration_minutes=45,
     ),
     Interest(
         category=PARK,
@@ -140,7 +146,7 @@ INTERESTS: tuple[Interest, ...] = (
             Rule("amenity", "place_of_worship"),
         ),
         tags=("photo", "walk"),
-        visit_duration_minutes=30,
+        visit_duration_minutes=20,
     ),
     Interest(
         # fast_food is deliberately absent: a chain burger on every corner is not where a walking
@@ -152,7 +158,7 @@ INTERESTS: tuple[Interest, ...] = (
             Rule("amenity", "restaurant|bakery|ice_cream", ways=False),
         ),
         tags=("coffee", "food"),
-        visit_duration_minutes=45,
+        visit_duration_minutes=30,
     ),
 )
 
@@ -179,6 +185,24 @@ def visit_minutes(category: str) -> int:
     return interest.visit_duration_minutes if interest else 60
 
 
+#: Nature, which `tourism=attraction` legitimately sits on and which the architecture rule therefore
+#: returns: a waterfall 30 km outside Sochi, a summit, a beach — including the nudist one that turned
+#: up under «Архитектура» in a live run. A viewpoint on a peak stays: it arrives as Парк, which is what
+#: a visitor walks up it for.
+NATURAL_PHENOMENA = {
+    "waterfall",
+    "peak",
+    "volcano",
+    "glacier",
+    "cave_entrance",
+    "spring",
+    "geyser",
+    "beach",
+    "coastline",
+    "shoreline",
+}
+
+
 def is_notable(tags: dict[str, str]) -> bool:
     """Does something besides the tag itself argue this object is worth a visitor's time?
 
@@ -193,11 +217,19 @@ def is_notable(tags: dict[str, str]) -> bool:
 def worth_showing(category: str, tags: dict[str, str]) -> bool:
     """Drop the elements a category admits but a catalog should not.
 
-    `amenity=place_of_worship` is the only such case: it is genuinely architecture, and it also
-    returns every working parish church on a residential street. Where the object is listed as an
-    attraction or carries a wiki link it belongs in the catalog; with neither, it is a building
-    rather than a destination.
+    Two of its rules are about what the category would otherwise claim:
+
+    `amenity=place_of_worship` is genuinely architecture, and it also returns every working parish
+    church on a residential street. Where the object is listed as an attraction or carries a wiki
+    link it belongs in the catalog; with neither, it is a building rather than a destination.
+
+    A waterfall, a summit or a beach carrying `tourism=attraction` is not architecture at all, and
+    «Архитектура» is the category a visitor is sent to for buildings.
     """
+    if category == ARCHITECTURE and any(
+        tags.get(key) in NATURAL_PHENOMENA for key in ("natural", "leisure")
+    ):
+        return False
     if category == ARCHITECTURE and tags.get("amenity") == "place_of_worship":
         return is_notable(tags)
     return True

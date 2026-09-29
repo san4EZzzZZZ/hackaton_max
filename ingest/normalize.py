@@ -21,6 +21,7 @@ durations are not in OpenStreetMap. They fall back to a category default, and ea
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from datetime import date
@@ -33,6 +34,8 @@ from ingest.taxonomy import CAFE, PARK, Interest, tags_of, visit_minutes
 from ingest.wikidata import Entity
 from server.routing import haversine_km
 from server.schemas import Location, Place, TagId
+
+logger = logging.getLogger(__name__)
 
 #: Two objects this close and this similarly named are the same place mapped twice: OSM carries a
 #: node and a building way for plenty of museums, and the catalog must not show both.
@@ -67,14 +70,39 @@ def build_candidates(
     grouped: dict[str, tuple[Element, ...]],
     entities: dict[str, Entity],
     pictures: dict[str, Picture],
+    *,
+    core_radius_km: float | None = None,
 ) -> list[Candidate]:
+    """Refine every element the box returned, then keep the copies of a place that are not the same place.
+
+    `core_radius_km` is the clip the bounding box cannot be trusted to give: Nominatim answers a
+    rectangle, and the rectangle around Sochi runs down the coast past the border and up into the
+    mountains — the measured tail was a waterfall at 31 km and a viaduct at 48. Those objects are real
+    and they are not stops on a walk through this city, so they leave here rather than being published
+    and then never picked.
+    """
     out: list[Candidate] = []
+    beyond_core = 0
     for category, elements in grouped.items():
         for element in elements:
+            if core_radius_km is not None and _beyond_core(city, element, core_radius_km):
+                beyond_core += 1
+                continue
             candidate = _one(city, category, element, entities, pictures)
             if candidate is not None:
                 out.append(candidate)
+    if beyond_core:
+        logger.info(
+            "%s: %d объектов дальше %.0f км от центра не вошли в каталог",
+            city.name,
+            beyond_core,
+            core_radius_km,
+        )
     return dedupe(out)
+
+
+def _beyond_core(city: City, element: Element, core_radius_km: float) -> bool:
+    return haversine_km(city_location(city), element_location(element)) > core_radius_km
 
 
 def dedupe(candidates: list[Candidate]) -> list[Candidate]:
@@ -119,31 +147,63 @@ def select(
 
     The per-category cap comes before the total one: a city with 300 monuments and two museums
     should still show its museums, which a plain global top-N would quietly drop.
+
+    The total limit is then taken one object per category at a time, in the same score order, rather
+    than as a global top-N. It has to be: `Кафе` is a category whose objects almost never carry a
+    Wikidata item or a photo, so ranked against cathedrals it loses every slot, and the live Kazan
+    run of the balanced selection published a single coffee house — one chip, one stop. Ten decent
+    cafés and two fewer monuments is the better catalog for anyone filtering by mood.
     """
-    kept: list[Candidate] = []
+    groups: list[list[Candidate]] = []
     for interest in interests:
         pool = sorted(
             (c for c in candidates if c.place.category == interest.category),
             key=lambda c: (-c.score, c.place.title),
         )
         cap = per_category if per_category is not None else interest.limit
-        kept.extend(_capped(pool, interest.category)[:cap])
+        groups.append(_capped(pool, interest.category, cap)[:cap])
+
+    kept: list[Candidate] = []
+    rank = 0
+    while len(kept) < total_limit and any(len(group) > rank for group in groups):
+        for group in groups:
+            if rank < len(group):
+                kept.append(group[rank])
+                if len(kept) == total_limit:
+                    break
+        rank += 1
     kept.sort(key=lambda c: (-c.score, c.place.title))
-    return kept[:total_limit]
+    return kept
 
 
-def _capped(pool: list[Candidate], category: str) -> list[Candidate]:
+def _capped(pool: list[Candidate], category: str, cap: int) -> list[Candidate]:
+    """One door per brand, and both moods of a mixed category inside the cap.
+
+    The brand rule is the obvious one: fifteen branches of the same coffee house are one place with
+    fifteen doors. The second half of this function is not about tidiness — `Кафе` answers two
+    different requests, «взять кофе» and «перекусить», and ranked by attestation alone a city's
+    twelve café slots fill with restaurants. The coffee chip was left with one place in Kazan, which
+    is a chip whose route is a single stop. So the two groups alternate down the list, each in its own
+    score order, and the cap cuts whatever the alternation produced.
+    """
     if category != CAFE:
         return pool
+    by_brand: list[Candidate] = []
     seen: dict[str, int] = {}
-    out: list[Candidate] = []
     for candidate in pool:
         brand = candidate.brand
         if brand and seen.get(brand, 0) >= MAX_PER_BRAND:
             continue
         seen[brand] = seen.get(brand, 0) + 1
-        out.append(candidate)
-    return out
+        by_brand.append(candidate)
+    coffee = [candidate for candidate in by_brand if "coffee" in candidate.place.tags]
+    other = [candidate for candidate in by_brand if "coffee" not in candidate.place.tags]
+    interleaved: list[Candidate] = []
+    for index in range(max(len(coffee), len(other))):
+        for group in (coffee, other):
+            if index < len(group):
+                interleaved.append(group[index])
+    return interleaved
 
 
 def assign_ids(candidates: list[Candidate]) -> list[Candidate]:

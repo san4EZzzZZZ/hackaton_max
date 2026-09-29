@@ -7,7 +7,8 @@ category failing: losing `Кафе` is a warning in the report, not an empty cit
 
 The bounding box is used instead of the boundary polygon (`area(...)`), for the same reason: the
 polygon clip costs the server a point-in-polygon test per element. What the box lets in — the next
-settlement over, a field 30 km out — is dropped by `core_radius_km` on the way back.
+settlement over, a field 30 km out — is dropped on the way back, both by `worth_showing` here and by
+the `core_radius_km` clip in `ingest.normalize.build_candidates`.
 """
 
 from __future__ import annotations
