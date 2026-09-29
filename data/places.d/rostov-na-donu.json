@@ -1,0 +1,1859 @@
+[
+  {
+    "id": "dom-vrangelya",
+    "title": "Дом Врангеля",
+    "description": null,
+    "category": "Архитектура",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2162587,
+      "lon": 39.7185763
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.8,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/%D0%9E%D1%81%D0%BE%D0%B1%D0%BD%D1%8F%D0%BA_%D0%9D_%D0%93_%D0%92%D1%80%D0%B0%D0%BD%D0%B3%D0%B5%D0%BB%D1%8F_-_%D0%93%D0%B0%D0%B7%D0%B5%D1%82%D0%BD%D1%8B%D0%B9_8.JPG/960px-%D0%9E%D1%81%D0%BE%D0%B1%D0%BD%D1%8F%D0%BA_%D0%9D_%D0%93_%D0%92%D1%80%D0%B0%D0%BD%D0%B3%D0%B5%D0%BB%D1%8F_-_%D0%93%D0%B0%D0%B7%D0%B5%D1%82%D0%BD%D1%8B%D0%B9_8.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q16645410",
+      "osm_url": "https://www.openstreetmap.org/node/5109750121",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.67,
+      "image_credit": {
+        "author": "Rost.galis",
+        "license": "CC BY-SA 4.0",
+        "file": "File:Особняк Н Г Врангеля - Газетный 8.JPG"
+      }
+    }
+  },
+  {
+    "id": "dom-f-n-solodova",
+    "title": "Дом Ф. Н. Солодова",
+    "description": null,
+    "category": "Архитектура",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2228697,
+      "lon": 39.7151182
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.8,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/%D0%94%D0%BE%D0%BC_%D0%A1%D0%BE%D1%8E%D0%B4%D0%BE%D0%B2%D0%BE%D0%B9_%28%D0%BF%D0%B5%D1%80._%D0%93%D0%B0%D0%B7%D0%B5%D1%82%D0%BD%D1%8B%D0%B9%2C_47%29_-_%D1%84%D0%B0%D1%81%D0%B0%D0%B4.JPG/960px-%D0%94%D0%BE%D0%BC_%D0%A1%D0%BE%D1%8E%D0%B4%D0%BE%D0%B2%D0%BE%D0%B9_%28%D0%BF%D0%B5%D1%80._%D0%93%D0%B0%D0%B7%D0%B5%D1%82%D0%BD%D1%8B%D0%B9%2C_47%29_-_%D1%84%D0%B0%D1%81%D0%B0%D0%B4.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q28754132",
+      "osm_url": "https://www.openstreetmap.org/node/6983724727",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.37,
+      "image_credit": {
+        "author": "Анна Матецкая",
+        "license": "CC BY-SA 3.0",
+        "file": "File:Дом Союдовой (пер. Газетный, 47) - фасад.JPG"
+      }
+    }
+  },
+  {
+    "id": "dokhodnyy-dom-a-m-shtroma",
+    "title": "Доходный дом А. М. Штрома",
+    "description": null,
+    "category": "Архитектура",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2240424,
+      "lon": 39.7251471
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.8,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/Revenue_house_of_M._A._Shtrom_2023.jpg/960px-Revenue_house_of_M._A._Shtrom_2023.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q28921563",
+      "osm_url": "https://www.openstreetmap.org/node/6983724726",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.44,
+      "image_credit": {
+        "author": "Alexander Roumega",
+        "license": "CC BY-SA 4.0",
+        "file": "File:Revenue house of M. A. Shtrom 2023.jpg"
+      }
+    }
+  },
+  {
+    "id": "dokhodnyy-dom-e-m-shpilreyn",
+    "title": "Доходный дом Е. М. Шпильрейн",
+    "description": "памятник архитектуры в Ростове-на-Дону.",
+    "category": "Архитектура",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2245505,
+      "lon": 39.710643
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.8,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Shpielrein_mansion_2020_panoramic.jpg/960px-Shpielrein_mansion_2020_panoramic.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q16683698",
+      "osm_url": "https://www.openstreetmap.org/node/6721500959",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.74,
+      "image_credit": {
+        "author": "Alexander Roumega",
+        "license": "CC BY-SA 4.0",
+        "file": "File:Shpielrein mansion 2020 panoramic.jpg"
+      }
+    }
+  },
+  {
+    "id": "dokhodnyy-dom-e-p-lyakhmaer",
+    "title": "Доходный дом Е. П. Ляхмаер",
+    "description": "памятник архитектуры.",
+    "category": "Архитектура",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2169912,
+      "lon": 39.7206925
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.8,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/%D0%94%D0%BE%D1%85%D0%BE%D0%B4%D0%BD%D1%8B%D0%B9_%D0%B4%D0%BE%D0%BC_%D0%95.%D0%9F._%D0%9B%D1%8F%D1%85%D0%BC%D0%B0%D0%B5%D1%80.JPG/960px-%D0%94%D0%BE%D1%85%D0%BE%D0%B4%D0%BD%D1%8B%D0%B9_%D0%B4%D0%BE%D0%BC_%D0%95.%D0%9F._%D0%9B%D1%8F%D1%85%D0%BC%D0%B0%D0%B5%D1%80.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q28752060",
+      "osm_url": "https://www.openstreetmap.org/node/6716447579",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.59,
+      "image_credit": {
+        "author": "Rost.galis",
+        "license": "CC BY-SA 4.0",
+        "file": "File:Доходный дом Е.П. Ляхмаер.JPG"
+      }
+    }
+  },
+  {
+    "id": "dokhodnyy-dom-p-i-kramera",
+    "title": "Доходный дом П. И. Крамера",
+    "description": null,
+    "category": "Архитектура",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2257972,
+      "lon": 39.7192186
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.8,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3a/Street_Pushkin_Restaurant_Assembly_Rostov.jpg/960px-Street_Pushkin_Restaurant_Assembly_Rostov.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q16683712",
+      "osm_url": "https://www.openstreetmap.org/node/6983724702",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.4,
+      "image_credit": {
+        "author": "Vlad2000Plus",
+        "license": "CC BY-SA 3.0",
+        "file": "File:Street Pushkin Restaurant Assembly Rostov.jpg"
+      }
+    }
+  },
+  {
+    "id": "dokhodnyy-dom-pivovarovoy",
+    "title": "Доходный дом Пивоваровой",
+    "description": null,
+    "category": "Архитектура",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2203511,
+      "lon": 39.7110874
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.8,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/ba/%D0%94%D0%BE%D1%85%D0%BE%D0%B4%D0%BD%D1%8B%D0%B9_%D0%B4%D0%BE%D0%BC_%D0%9B.%D0%9C._%D0%9F%D0%B8%D0%B2%D0%BE%D0%B2%D0%B0%D1%80%D0%BE%D0%B2%D0%BE%D0%B9.jpg/960px-%D0%94%D0%BE%D1%85%D0%BE%D0%B4%D0%BD%D1%8B%D0%B9_%D0%B4%D0%BE%D0%BC_%D0%9B.%D0%9C._%D0%9F%D0%B8%D0%B2%D0%BE%D0%B2%D0%B0%D1%80%D0%BE%D0%B2%D0%BE%D0%B9.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q28944460",
+      "osm_url": "https://www.openstreetmap.org/node/6983724725",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.7,
+      "image_credit": {
+        "author": "Rost.galis",
+        "license": "CC BY-SA 4.0",
+        "file": "File:Доходный дом Л.М. Пивоваровой.jpg"
+      }
+    }
+  },
+  {
+    "id": "dokhodnyy-dom-stepana-akimova",
+    "title": "Доходный дом Степана Акимова",
+    "description": null,
+    "category": "Архитектура",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2154871,
+      "lon": 39.7133058
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.8,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/%D0%94%D0%BE%D1%85%D0%BE%D0%B4%D0%BD%D1%8B%D0%B9_%D0%B4%D0%BE%D0%BC_%D0%A1.%D0%A1_%D0%90%D0%BA%D0%B8%D0%BC%D0%BE%D0%B2%D0%B0.JPG/960px-%D0%94%D0%BE%D1%85%D0%BE%D0%B4%D0%BD%D1%8B%D0%B9_%D0%B4%D0%BE%D0%BC_%D0%A1.%D0%A1_%D0%90%D0%BA%D0%B8%D0%BC%D0%BE%D0%B2%D0%B0.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q28908926",
+      "osm_url": "https://www.openstreetmap.org/node/6983724724",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.9,
+      "image_credit": {
+        "author": "Rost.galis",
+        "license": "CC BY-SA 4.0",
+        "file": "File:Доходный дом С.С Акимова.JPG"
+      }
+    }
+  },
+  {
+    "id": "zhiloy-dom-khadzhaeva",
+    "title": "Жилой дом Хаджаева",
+    "description": null,
+    "category": "Архитектура",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2194806,
+      "lon": 39.7100527
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.8,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/%D0%A1%D0%BE%D1%86%D0%B8%D0%B0%D0%BB%D0%B8%D1%81%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F%2C65.jpg/960px-%D0%A1%D0%BE%D1%86%D0%B8%D0%B0%D0%BB%D0%B8%D1%81%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F%2C65.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q29514950",
+      "osm_url": "https://www.openstreetmap.org/node/6983724723",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.8,
+      "image_credit": {
+        "author": "AnaHel",
+        "license": "CC BY-SA 4.0",
+        "file": "File:Социалистическая,65.jpg"
+      }
+    }
+  },
+  {
+    "id": "osobnyak-i-a-suprunova",
+    "title": "Особняк И. А. Супрунова",
+    "description": "памятник архитектуры в Ростове-на-Дону.",
+    "category": "Архитектура",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2244228,
+      "lon": 39.7098336
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.8,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Suprunov_mansion_2020.jpg/960px-Suprunov_mansion_2020.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q16683722",
+      "osm_url": "https://www.openstreetmap.org/node/6716456297",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.8,
+      "image_credit": {
+        "author": "Alexander Roumega",
+        "license": "CC BY-SA 4.0",
+        "file": "File:Suprunov mansion 2020.jpg"
+      }
+    }
+  },
+  {
+    "id": "osobnyak-paramonova",
+    "title": "Особняк Парамонова",
+    "description": "Особняк Парамонова 611510279110006",
+    "category": "Архитектура",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2269709,
+      "lon": 39.7253271
+    },
+    "address": "Пушкинская улица, 148, Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.8,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3d/%D0%9E%D1%81%D0%BE%D0%B1%D0%BD%D1%8F%D0%BA_%D0%BA%D0%BD%D0%B8%D0%B3%D0%BE%D0%B8%D0%B7%D0%B4%D0%B0%D1%82%D0%B5%D0%BB%D1%8F_%D0%9D_%D0%95_%D0%9F%D0%B0%D1%80%D0%B0%D0%BC%D0%BE%D0%BD%D0%BE%D0%B2%D0%B0_1914_%D0%B3_%28%D0%B1%D0%B8%D0%B1%D0%BB%D0%B8%D0%BE%D1%82%D0%B5%D0%BA%D0%B0_%D0%AE%D0%A4%D0%A3%29_1.JPG/960px-%D0%9E%D1%81%D0%BE%D0%B1%D0%BD%D1%8F%D0%BA_%D0%BA%D0%BD%D0%B8%D0%B3%D0%BE%D0%B8%D0%B7%D0%B4%D0%B0%D1%82%D0%B5%D0%BB%D1%8F_%D0%9D_%D0%95_%D0%9F%D0%B0%D1%80%D0%B0%D0%BC%D0%BE%D0%BD%D0%BE%D0%B2%D0%B0_1914_%D0%B3_%28%D0%B1%D0%B8%D0%B1%D0%BB%D0%B8%D0%BE%D1%82%D0%B5%D0%BA%D0%B0_%D0%AE%D0%A4%D0%A3%29_1.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q16683714",
+      "osm_url": "https://www.openstreetmap.org/node/6950523194",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.67,
+      "image_credit": {
+        "author": "Rost.galis",
+        "license": "CC BY-SA 4.0",
+        "file": "File:Особняк книгоиздателя Н Е Парамонова 1914 г (библиотека ЮФУ) 1.JPG"
+      }
+    }
+  },
+  {
+    "id": "osobnyak-petrova",
+    "title": "Особняк Петрова",
+    "description": null,
+    "category": "Архитектура",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.225656,
+      "lon": 39.715772
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.8,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/%D0%9E%D1%81%D0%BE%D0%B1%D0%BD%D1%8F%D0%BA_%D0%94%D0%BE%D0%BC%D0%B1%D1%80%D0%BE%D0%B2%D1%81%D0%BA%D0%BE%D0%B3%D0%BE_1.jpg/960px-%D0%9E%D1%81%D0%BE%D0%B1%D0%BD%D1%8F%D0%BA_%D0%94%D0%BE%D0%BC%D0%B1%D1%80%D0%BE%D0%B2%D1%81%D0%BA%D0%BE%D0%B3%D0%BE_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q16683716",
+      "osm_url": "https://www.openstreetmap.org/node/6983724707",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.49,
+      "image_credit": {
+        "author": "No Worries",
+        "license": "CC BY-SA 3.0",
+        "file": "File:Особняк Домбровского 1.jpg"
+      }
+    }
+  },
+  {
+    "id": "vechnyy-kalendar",
+    "title": "Вечный календарь",
+    "description": "На календаре можно установить дату от 01.01.1900 до 31.12.2099. Высота - 2м. Вес более 300 кг.",
+    "category": "Галерея",
+    "tags": [
+      "culture",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.2260085,
+      "lon": 39.727461
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 45,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/9307879968",
+      "osm_url": "https://www.openstreetmap.org/node/9307879968",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.71
+    }
+  },
+  {
+    "id": "galereya-16-ya-liniya",
+    "title": "Галерея 16-я линия",
+    "description": "галерея современного искусства.",
+    "category": "Галерея",
+    "tags": [
+      "culture",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.2306959,
+      "lon": 39.7593565
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.6,
+    "visit_duration_minutes": 45,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q4029128",
+      "osm_url": "https://www.openstreetmap.org/node/6142928109",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 3.13
+    }
+  },
+  {
+    "id": "evgeniy-onegin",
+    "title": "Евгений Онегин",
+    "description": "Герои произведений А.С. Пушкина",
+    "category": "Галерея",
+    "tags": [
+      "culture",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.2284911,
+      "lon": 39.7304575
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 45,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/5262424719",
+      "osm_url": "https://www.openstreetmap.org/node/5262424719",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 1.06
+    }
+  },
+  {
+    "id": "leto",
+    "title": "Лето",
+    "description": "Скульптурная композиция \"Лето\"",
+    "category": "Галерея",
+    "tags": [
+      "culture",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.2123395,
+      "lon": 39.7068404
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 45,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/way/816768937",
+      "osm_url": "https://www.openstreetmap.org/way/816768937",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 1.48
+    }
+  },
+  {
+    "id": "mekhanicheskie-chasy",
+    "title": "Механические часы",
+    "description": "Конструкция способна поворачиваться вокруг своей оси, а по ночам она подсвечивается.Часы весят – 300 килограммов. Механизм заводится с помощью ключа весом 3кг.",
+    "category": "Галерея",
+    "tags": [
+      "culture",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.2365411,
+      "lon": 39.7100201
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 45,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/9308054677",
+      "osm_url": "https://www.openstreetmap.org/node/9308054677",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 1.75
+    }
+  },
+  {
+    "id": "pushkinskiy-shar",
+    "title": "Пушкинский шар",
+    "description": "Этапы жизни А.С. Пушкина",
+    "category": "Галерея",
+    "tags": [
+      "culture",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.2283737,
+      "lon": 39.7298526
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 45,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/5261942128",
+      "osm_url": "https://www.openstreetmap.org/node/5261942128",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 1.01
+    }
+  },
+  {
+    "id": "belyy-slon",
+    "title": "Белый слон",
+    "description": "Вегетарианское",
+    "category": "Кафе",
+    "tags": [
+      "coffee"
+    ],
+    "location": {
+      "lat": 47.2264174,
+      "lon": 39.7195525
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 30,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/6498306738",
+      "osm_url": "https://www.openstreetmap.org/node/6498306738",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.46
+    }
+  },
+  {
+    "id": "zolotoy-kolos",
+    "title": "Золотой Колос",
+    "description": "банкетный зал",
+    "category": "Кафе",
+    "tags": [
+      "coffee"
+    ],
+    "location": {
+      "lat": 47.2148546,
+      "lon": 39.6167788
+    },
+    "address": "улица Жмайлова, 4/9, Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 30,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/2383970457",
+      "osm_url": "https://www.openstreetmap.org/node/2383970457",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 7.83
+    }
+  },
+  {
+    "id": "zolotoy-kolos-2",
+    "title": "Золотой колос",
+    "description": "банкетный зал",
+    "category": "Кафе",
+    "tags": [
+      "coffee"
+    ],
+    "location": {
+      "lat": 47.2204415,
+      "lon": 39.7082038
+    },
+    "address": "Большая Садовая улица, 43, Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 30,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/1213529005",
+      "osm_url": "https://www.openstreetmap.org/node/1213529005",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.9
+    }
+  },
+  {
+    "id": "zolotoy-kolos-3",
+    "title": "Золотой Колос",
+    "description": "банкетный зал",
+    "category": "Кафе",
+    "tags": [
+      "coffee"
+    ],
+    "location": {
+      "lat": 47.2320669,
+      "lon": 39.7611573
+    },
+    "address": "площадь Карла Маркса, 28/2, Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 30,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/1038338352",
+      "osm_url": "https://www.openstreetmap.org/node/1038338352",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 3.3
+    }
+  },
+  {
+    "id": "svobodnoe-prostranstvo-tsiferblat",
+    "title": "Свободное пространство Циферблат",
+    "description": "Third Place, Coworking",
+    "category": "Кафе",
+    "tags": [
+      "coffee"
+    ],
+    "location": {
+      "lat": 47.2259127,
+      "lon": 39.7204844
+    },
+    "address": "проспект Соколова, 46, Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 30,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/2125163928",
+      "osm_url": "https://www.openstreetmap.org/node/2125163928",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.41
+    }
+  },
+  {
+    "id": "silla",
+    "title": "Силла",
+    "description": "Роллы, китайская кухня",
+    "category": "Кафе",
+    "tags": [
+      "food"
+    ],
+    "location": {
+      "lat": 47.225124,
+      "lon": 39.7159001
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 30,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/2334624651",
+      "osm_url": "https://www.openstreetmap.org/node/2334624651",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.44
+    }
+  },
+  {
+    "id": "surneli-gruzinskaya-kukhnya",
+    "title": "Сурнели (грузинская кухня)",
+    "description": "Грузинская кухня",
+    "category": "Кафе",
+    "tags": [
+      "food"
+    ],
+    "location": {
+      "lat": 47.2274593,
+      "lon": 39.6943331
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 30,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/5127674702",
+      "osm_url": "https://www.openstreetmap.org/node/5127674702",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 2.01
+    }
+  },
+  {
+    "id": "ubezhische-mechtatelya",
+    "title": "Убежище Мечтателя",
+    "description": "Окунись в нашу атмосферу...",
+    "category": "Кафе",
+    "tags": [
+      "coffee"
+    ],
+    "location": {
+      "lat": 47.2492633,
+      "lon": 39.7159202
+    },
+    "address": "проспект Ленина, 105, Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": "пн–вс 10:00–20:00",
+    "rating": 4.2,
+    "visit_duration_minutes": 30,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/4195146336",
+      "osm_url": "https://www.openstreetmap.org/node/4195146336",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 3.02
+    }
+  },
+  {
+    "id": "istoriko-etnograficheskiy-muzey",
+    "title": "Историко-этнографический музей",
+    "description": "музей в селе Чалтырь Мясниковского района Ростовской области.",
+    "category": "Музей",
+    "tags": [
+      "culture",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.2843642,
+      "lon": 39.4987524
+    },
+    "address": "улица Ленина, 34, Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.5,
+    "visit_duration_minutes": 45,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/%D0%98%D1%81%D1%82%D0%BE%D1%80%D0%B8%D0%BA%D0%BE-%D1%8D%D1%82%D0%BD%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9_%D0%BC%D1%83%D0%B7%D0%B5%D0%B9_%D0%9C%D1%8F%D1%81%D0%BD%D0%B8%D0%BA%D0%BE%D0%B2%D1%81%D0%BA%D0%BE%D0%B3%D0%BE_%D1%80%D0%B0%D0%B9%D0%BE%D0%BD%D0%B0.jpg/960px-%D0%98%D1%81%D1%82%D0%BE%D1%80%D0%B8%D0%BA%D0%BE-%D1%8D%D1%82%D0%BD%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9_%D0%BC%D1%83%D0%B7%D0%B5%D0%B9_%D0%9C%D1%8F%D1%81%D0%BD%D0%B8%D0%BA%D0%BE%D0%B2%D1%81%D0%BA%D0%BE%D0%B3%D0%BE_%D1%80%D0%B0%D0%B9%D0%BE%D0%BD%D0%B0.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q29061890",
+      "osm_url": "https://www.openstreetmap.org/node/5109185521",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 18.06,
+      "image_credit": {
+        "author": "Alexander Roumega",
+        "license": "CC0",
+        "file": "File:Историко-этнографический музей Мясниковского района.jpg"
+      }
+    }
+  },
+  {
+    "id": "muzey-russko-armyanskoy-druzhby",
+    "title": "Музей русско-армянской дружбы",
+    "description": null,
+    "category": "Музей",
+    "tags": [
+      "culture",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.2291232,
+      "lon": 39.7650769
+    },
+    "address": "площадь Свободы, 14, Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.6,
+    "visit_duration_minutes": 45,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/85/%D0%9C%D1%83%D0%B7%D0%B5%D0%B9_%D1%80%D1%83%D1%81%D1%81%D0%BA%D0%BE-%D0%B0%D1%80%D0%BC%D1%8F%D0%BD%D1%81%D0%BA%D0%BE%D0%B9_%D0%B4%D1%80%D1%83%D0%B6%D0%B1%D1%8B.JPG/960px-%D0%9C%D1%83%D0%B7%D0%B5%D0%B9_%D1%80%D1%83%D1%81%D1%81%D0%BA%D0%BE-%D0%B0%D1%80%D0%BC%D1%8F%D0%BD%D1%81%D0%BA%D0%BE%D0%B9_%D0%B4%D1%80%D1%83%D0%B6%D0%B1%D1%8B.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q28603753",
+      "osm_url": "https://www.openstreetmap.org/way/173215976",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 3.5,
+      "image_credit": {
+        "author": "Valentina Gutsalova",
+        "license": "CC BY-SA 3.0",
+        "file": "File:Музей русско-армянской дружбы.JPG"
+      }
+    }
+  },
+  {
+    "id": "muzey-sela-krym",
+    "title": "Музей села Крым",
+    "description": "музей.",
+    "category": "Музей",
+    "tags": [
+      "culture",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.3048061,
+      "lon": 39.5113981
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.5,
+    "visit_duration_minutes": 45,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/%D0%9C%D1%83%D0%B7%D0%B5%D0%B9_%D1%81%D0%B5%D0%BB%D0%B0_%D0%9A%D1%80%D1%8B%D0%BC.jpg/960px-%D0%9C%D1%83%D0%B7%D0%B5%D0%B9_%D1%81%D0%B5%D0%BB%D0%B0_%D0%9A%D1%80%D1%8B%D0%BC.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q28887458",
+      "osm_url": "https://www.openstreetmap.org/node/5109171848",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 18.21,
+      "image_credit": {
+        "author": "Alexander Roumega",
+        "license": "CC0",
+        "file": "File:Музей села Крым.jpg"
+      }
+    }
+  },
+  {
+    "id": "muzey-sovremennogo-izobrazitelnogo-iskusstva-na-dmitrovskoy",
+    "title": "Музей современного изобразительного искусства на Дмитровской",
+    "description": null,
+    "category": "Музей",
+    "tags": [
+      "culture",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.2206244,
+      "lon": 39.7128925
+    },
+    "address": "улица Шаумяна, 51, Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": "ср–вс 12:00–19:00",
+    "rating": 4.7,
+    "visit_duration_minutes": 45,
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/1/19/Museum_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q4306467",
+      "osm_url": "https://www.openstreetmap.org/node/1127814214",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.56,
+      "image_credit": {
+        "author": "фото А.И.Астаховой",
+        "license": "CC BY-SA 2.5",
+        "file": "File:Museum 02.jpg"
+      }
+    }
+  },
+  {
+    "id": "aleksandrovskaya-kolonna",
+    "title": "Александровская колонна",
+    "description": null,
+    "category": "Памятник",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2277372,
+      "lon": 39.7490915
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.7,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/%D0%90%D0%BB%D0%B5%D0%BA%D1%81%D0%B0%D0%BD%D0%B4%D1%80%D0%B8%D0%B9%D1%81%D0%BA%D0%B0%D1%8F_%D0%BA%D0%BE%D0%BB%D0%BE%D0%BD%D0%BD%D0%B0_%28%D0%B2%D0%B8%D0%B4_%D0%BE%D1%82_%D0%B2%D1%85%D0%BE%D0%B4%D0%B0_%D0%B2_%D0%BF%D0%B0%D1%80%D0%BA%29.JPG/960px-%D0%90%D0%BB%D0%B5%D0%BA%D1%81%D0%B0%D0%BD%D0%B4%D1%80%D0%B8%D0%B9%D1%81%D0%BA%D0%B0%D1%8F_%D0%BA%D0%BE%D0%BB%D0%BE%D0%BD%D0%BD%D0%B0_%28%D0%B2%D0%B8%D0%B4_%D0%BE%D1%82_%D0%B2%D1%85%D0%BE%D0%B4%D0%B0_%D0%B2_%D0%BF%D0%B0%D1%80%D0%BA%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q16270996",
+      "osm_url": "https://www.openstreetmap.org/way/105258465",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 2.29,
+      "image_credit": {
+        "author": "Крепс Сергей Геннадьевич",
+        "license": "CC BY-SA 3.0",
+        "file": "File:Александрийская колонна (вид от входа в парк).JPG"
+      }
+    }
+  },
+  {
+    "id": "artilleristam-oganovtsam",
+    "title": "Артиллеристам \"Огановцам\"",
+    "description": "Отважным воинам Отчизны, славой вечной покрывшим себя в боях под Ростовом осенью 1941 года. Подвигу батареи С. Оганова и С. Вавилова посвящается.",
+    "category": "Памятник",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2632609,
+      "lon": 39.6659745
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 20,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/1523701194",
+      "osm_url": "https://www.openstreetmap.org/node/1523701194",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 6.11
+    }
+  },
+  {
+    "id": "elizaveta-romanova",
+    "title": "Елизавета Романова",
+    "description": null,
+    "category": "Памятник",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.22561,
+      "lon": 39.7322297
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.6,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83%2C_%D1%81%D0%BA%D0%B2%D0%B5%D1%80_%D0%9F%D0%BE%D0%BA%D1%80%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9%2C_%D1%85%D1%80%D0%B0%D0%BC_%D0%9F%D0%BE%D0%BA%D1%80%D0%BE%D0%B2%D0%B0_%D0%9F%D1%80%D0%B5%D1%81%D0%B2%D1%8F%D1%82%D0%BE%D0%B9_%D0%91%D0%BE%D0%B3%D0%BE%D1%80%D0%BE%D0%B4%D0%B8%D1%86%D1%8B%2C_%D0%BF%D0%B0%D0%BC%D1%8F%D1%82%D0%BD%D0%B8%D0%BA_%D0%B8%D0%BC%D0%BF%D0%B5%D1%80%D0%B0%D1%82%D1%80%D0%B8%D1%86%D0%B5_%D0%95%D0%BB%D0%B8%D0%B7%D0%B0%D0%B2%D0%B5%D1%82%D0%B5_%D0%9F%D0%B5%D1%82%D1%80%D0%BE%D0%B2%D0%BD%D0%B5%2C_28.05.2015_-_panoramio.jpg/960px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q28169451",
+      "osm_url": "https://www.openstreetmap.org/node/1428671008",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 1.0,
+      "image_credit": {
+        "author": "Vadim Zhivotovsky",
+        "license": "CC BY 3.0",
+        "file": "File:Ростов-на-Дону, сквер Покровский, храм Покрова Пресвятой Богородицы, памятник императрице Елизавете Петровне, 28.05.2015 - panoramio.jpg"
+      }
+    }
+  },
+  {
+    "id": "karl-marks",
+    "title": "Карл Маркс",
+    "description": null,
+    "category": "Памятник",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2306054,
+      "lon": 39.7626543
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.7,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83%2C_%D0%BF%D0%B0%D0%BC%D1%8F%D1%82%D0%BD%D0%B8%D0%BA_%D0%9A%D0%B0%D1%80%D0%BB%D1%83_%D0%9C%D0%B0%D1%80%D0%BA%D1%81%D1%83.jpg/960px-%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83%2C_%D0%BF%D0%B0%D0%BC%D1%8F%D1%82%D0%BD%D0%B8%D0%BA_%D0%9A%D0%B0%D1%80%D0%BB%D1%83_%D0%9C%D0%B0%D1%80%D0%BA%D1%81%D1%83.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q16684459",
+      "osm_url": "https://www.openstreetmap.org/node/1688832961",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 3.36,
+      "image_credit": {
+        "author": "Алекс Астрал",
+        "license": "CC BY-SA 4.0",
+        "file": "File:Ростов-на-Дону, памятник Карлу Марксу.jpg"
+      }
+    }
+  },
+  {
+    "id": "nevinno-ubiennym",
+    "title": "Невинно убиенным",
+    "description": null,
+    "category": "Памятник",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2300055,
+      "lon": 39.7013699
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.6,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Monument_to_innocent_murdered.jpg/960px-Monument_to_innocent_murdered.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q28667872",
+      "osm_url": "https://www.openstreetmap.org/node/3162050880",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 1.64,
+      "image_credit": {
+        "author": "Fargoh",
+        "license": "CC BY-SA 3.0",
+        "file": "File:Monument to innocent murdered.jpg"
+      }
+    }
+  },
+  {
+    "id": "pamyatnik-1-y-konnoy-armii",
+    "title": "Памятник 1-й Конной армии",
+    "description": null,
+    "category": "Памятник",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2219405,
+      "lon": 39.7204221
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.6,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c0/Rostov_Obl_Adm.JPG/960px-Rostov_Obl_Adm.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q16677773",
+      "osm_url": "https://www.openstreetmap.org/way/111685132",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.05,
+      "image_credit": {
+        "author": null,
+        "license": "CC BY-SA 3.0",
+        "file": "File:Rostov Obl Adm.JPG"
+      }
+    }
+  },
+  {
+    "id": "panteon-slavy",
+    "title": "Пантеон Славы",
+    "description": "мемориал.",
+    "category": "Памятник",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.3045799,
+      "lon": 39.5154257
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.5,
+    "visit_duration_minutes": 20,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/%D0%9F%D0%B0%D0%BD%D1%82%D0%B5%D0%BE%D0%BD_%D0%A1%D0%BB%D0%B0%D0%B2%D1%8B_%28%D1%81%D0%B5%D0%BB%D0%BE_%D0%9A%D1%80%D1%8B%D0%BC%29_2.jpg/960px-%D0%9F%D0%B0%D0%BD%D1%82%D0%B5%D0%BE%D0%BD_%D0%A1%D0%BB%D0%B0%D0%B2%D1%8B_%28%D1%81%D0%B5%D0%BB%D0%BE_%D0%9A%D1%80%D1%8B%D0%BC%29_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q28732731",
+      "osm_url": "https://www.openstreetmap.org/node/5109160606",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 17.94,
+      "image_credit": {
+        "author": "Alexander Roumega",
+        "license": "CC0",
+        "file": "File:Пантеон Славы (село Крым) 2.jpg"
+      }
+    }
+  },
+  {
+    "id": "pm-717",
+    "title": "ПМ-717",
+    "description": "Паровозик",
+    "category": "Памятник",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2133415,
+      "lon": 39.6941705
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 20,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/5261606186",
+      "osm_url": "https://www.openstreetmap.org/node/5261606186",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 2.18
+    }
+  },
+  {
+    "id": "stela-gorod-voinskoy-slavy",
+    "title": "Стела «Город воинской славы»",
+    "description": "Стела в честь присвоения Ростову-на-Дону звания \"Город воинской славы\"",
+    "category": "Памятник",
+    "tags": [
+      "photo",
+      "walk"
+    ],
+    "location": {
+      "lat": 47.2567808,
+      "lon": 39.8012834
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 20,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/node/1137362018",
+      "osm_url": "https://www.openstreetmap.org/node/1137362018",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 7.25
+    }
+  },
+  {
+    "id": "park-im-anatoliya-sobino",
+    "title": "Парк им. Анатолия Собино",
+    "description": null,
+    "category": "Парк",
+    "tags": [
+      "walk",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.2195695,
+      "lon": 39.6715012
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.6,
+    "visit_duration_minutes": 60,
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/ce/%D0%9F%D0%B0%D0%BC%D1%8F%D1%82%D0%BD%D0%B8%D0%BA_%D0%BD%D0%B0_%D0%BC%D0%BE%D0%B3%D0%B8%D0%BB%D0%B5_%D0%92%D0%B8%D1%82%D0%B0%D0%BB%D0%B8%D1%8F_%D0%A1%D0%B0%D0%B1%D0%B8%D0%BD%D0%B8%D0%BD%D0%B0_%28%D0%90%D0%BD%D0%B0%D1%82%D0%BE%D0%BB%D0%B8%D1%8F_%D0%A1%D0%BE%D0%B1%D0%B8%D0%BD%D0%BE%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q29293934",
+      "osm_url": "https://www.openstreetmap.org/way/74113195",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 3.67,
+      "image_credit": {
+        "author": "Вадим Анохин",
+        "license": "CC BY-SA 4.0",
+        "file": "File:Памятник на могиле Виталия Сабинина (Анатолия Собино).jpg"
+      }
+    }
+  },
+  {
+    "id": "park-imeni-70-letiya-pobedy-v-velikoy-otechestvennoy-voyne",
+    "title": "Парк имени 70-летия победы в Великой Отечественной Войне",
+    "description": "парк в честь 70-летия Победы в Великой Отечественной войне",
+    "category": "Парк",
+    "tags": [
+      "walk",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.3086777,
+      "lon": 39.6772084
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.2,
+    "visit_duration_minutes": 60,
+    "image_url": null,
+    "provenance": {
+      "source_url": "https://www.openstreetmap.org/way/338849238",
+      "osm_url": "https://www.openstreetmap.org/way/338849238",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 10.13
+    }
+  },
+  {
+    "id": "park-imeni-goroda-dortmunda",
+    "title": "Парк имени города Дортмунда",
+    "description": "парк в Ростове-на-Дону.",
+    "category": "Парк",
+    "tags": [
+      "walk",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.2106797,
+      "lon": 39.6462193
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.6,
+    "visit_duration_minutes": 60,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Dortmund_Garden_Square_in_Rostov-on-Don_01.jpg/960px-Dortmund_Garden_Square_in_Rostov-on-Don_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q13668153",
+      "osm_url": "https://www.openstreetmap.org/way/46950575",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 5.71,
+      "image_credit": {
+        "author": "Alexander Roumega",
+        "license": "CC0",
+        "file": "File:Dortmund Garden Square in Rostov-on-Don 01.jpg"
+      }
+    }
+  },
+  {
+    "id": "park-kultury-i-otdykha-im-ostrovskogo",
+    "title": "Парк культуры и отдыха им. Островского",
+    "description": null,
+    "category": "Парк",
+    "tags": [
+      "walk",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.2447755,
+      "lon": 39.7583799
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.6,
+    "visit_duration_minutes": 60,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c1/%D0%9F%D0%B0%D1%80%D0%BA_%D0%B8%D0%BC._%D0%9D._%D0%9E%D1%81%D1%82%D1%80%D0%BE%D0%B2%D1%81%D0%BA%D0%BE%D0%B3%D0%BE%2C_%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83%2C_%D0%90%D0%BB%D0%BB%D0%B5%D1%8F_%D1%81%D0%B2%D1%8F%D0%B7%D0%B8%D1%81%D1%82%D0%BE%D0%B2.jpg/960px-%D0%9F%D0%B0%D1%80%D0%BA_%D0%B8%D0%BC._%D0%9D._%D0%9E%D1%81%D1%82%D1%80%D0%BE%D0%B2%D1%81%D0%BA%D0%BE%D0%B3%D0%BE%2C_%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83%2C_%D0%90%D0%BB%D0%BB%D0%B5%D1%8F_%D1%81%D0%B2%D1%8F%D0%B7%D0%B8%D1%81%D1%82%D0%BE%D0%B2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q13668155",
+      "osm_url": "https://www.openstreetmap.org/way/73923156",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 3.84,
+      "image_credit": {
+        "author": "Nadiaa1995",
+        "license": "CC BY-SA 4.0",
+        "file": "File:Парк им. Н. Островского, Ростов-на-Дону, Аллея связистов.jpg"
+      }
+    }
+  },
+  {
+    "id": "pokrovskiy-skver",
+    "title": "Покровский сквер",
+    "description": "Сквер Ростова-на-Дону.",
+    "category": "Парк",
+    "tags": [
+      "walk",
+      "photo"
+    ],
+    "location": {
+      "lat": 47.2257914,
+      "lon": 39.7319991
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.6,
+    "visit_duration_minutes": 60,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83%2C_%D1%81%D0%BA%D0%B2%D0%B5%D1%80_%D0%9F%D0%BE%D0%BA%D1%80%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9%2C_%D1%85%D1%80%D0%B0%D0%BC_%D0%9F%D0%BE%D0%BA%D1%80%D0%BE%D0%B2%D0%B0_%D0%9F%D1%80%D0%B5%D1%81%D0%B2%D1%8F%D1%82%D0%BE%D0%B9_%D0%91%D0%BE%D0%B3%D0%BE%D1%80%D0%BE%D0%B4%D0%B8%D1%86%D1%8B%2C_%D0%BF%D0%B0%D0%BC%D1%8F%D1%82%D0%BD%D0%B8%D0%BA_%D0%B8%D0%BC%D0%BF%D0%B5%D1%80%D0%B0%D1%82%D1%80%D0%B8%D1%86%D0%B5_%D0%95%D0%BB%D0%B8%D0%B7%D0%B0%D0%B2%D0%B5%D1%82%D0%B5_%D0%9F%D0%B5%D1%82%D1%80%D0%BE%D0%B2%D0%BD%D0%B5%2C_28.05.2015_-_panoramio.jpg/960px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q28480168",
+      "osm_url": "https://www.openstreetmap.org/way/297113290",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 1.0,
+      "image_credit": {
+        "author": "Vadim Zhivotovsky",
+        "license": "CC BY 3.0",
+        "file": "File:Ростов-на-Дону, сквер Покровский, храм Покрова Пресвятой Богородицы, памятник императрице Елизавете Петровне, 28.05.2015 - panoramio.jpg"
+      }
+    }
+  },
+  {
+    "id": "18",
+    "title": "18+",
+    "description": "негосударственный театр в Ростове-на-Дону.",
+    "category": "Театр",
+    "tags": [
+      "culture"
+    ],
+    "location": {
+      "lat": 47.2314643,
+      "lon": 39.7600409
+    },
+    "address": "Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": null,
+    "rating": 4.6,
+    "visit_duration_minutes": 90,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/39/2013_18_Plus_Makaronka.jpg/960px-2013_18_Plus_Makaronka.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q4029250",
+      "osm_url": "https://www.openstreetmap.org/node/2598777176",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes",
+        "working_hours",
+        "address"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 3.2,
+      "image_credit": {
+        "author": "Анна Астахова",
+        "license": "CC BY-SA 3.0",
+        "file": "File:2013 18 Plus Makaronka.jpg"
+      }
+    }
+  },
+  {
+    "id": "akademicheskiy-molodyozhnyy-teatr",
+    "title": "Академический молодёжный театр",
+    "description": "Здание Нахичеванского городского театра 611510279140006",
+    "category": "Театр",
+    "tags": [
+      "culture"
+    ],
+    "location": {
+      "lat": 47.2298158,
+      "lon": 39.7643738
+    },
+    "address": "площадь Свободы, 3, Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": "пн–вс 10:00–19:00",
+    "rating": 4.7,
+    "visit_duration_minutes": 90,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/TYUZ_Rostov.jpg/960px-TYUZ_Rostov.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q4398504",
+      "osm_url": "https://www.openstreetmap.org/way/72644779",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 3.46,
+      "image_credit": {
+        "author": "Вадим Анохин",
+        "license": "CC BY-SA 3.0",
+        "file": "File:TYUZ Rostov.jpg"
+      }
+    }
+  },
+  {
+    "id": "teatr-kukol",
+    "title": "Театр кукол",
+    "description": null,
+    "category": "Театр",
+    "tags": [
+      "culture"
+    ],
+    "location": {
+      "lat": 47.2258001,
+      "lon": 39.728218
+    },
+    "address": "Университетский переулок, 46, Ростов-на-Дону",
+    "city": "Ростов-на-Дону",
+    "is_pushkin_card": false,
+    "price": 0.0,
+    "working_hours": "вт–пт 10:00–17:00, сб–вс 10:00–16:00",
+    "rating": 4.7,
+    "visit_duration_minutes": 90,
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9_%D0%93%D0%BE%D1%81%D1%83%D0%B4%D0%B0%D1%80%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D1%8B%D0%B9_%D0%A2%D0%B5%D0%B0%D1%82%D1%80_%D0%9A%D1%83%D0%BA%D0%BE%D0%BB_%D0%B8%D0%BC._%D0%92.%D0%A1._%D0%91%D1%8B%D0%BB%D0%BA%D0%BE%D0%B2%D0%B0%2C_%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83.jpg/960px-%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9_%D0%93%D0%BE%D1%81%D1%83%D0%B4%D0%B0%D1%80%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D1%8B%D0%B9_%D0%A2%D0%B5%D0%B0%D1%82%D1%80_%D0%9A%D1%83%D0%BA%D0%BE%D0%BB_%D0%B8%D0%BC._%D0%92.%D0%A1._%D0%91%D1%8B%D0%BB%D0%BA%D0%BE%D0%B2%D0%B0%2C_%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2-%D0%BD%D0%B0-%D0%94%D0%BE%D0%BD%D1%83.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "provenance": {
+      "source_url": "https://www.wikidata.org/wiki/Q4398495",
+      "osm_url": "https://www.openstreetmap.org/way/77929392",
+      "last_verified": "2026-09-30",
+      "unverified_fields": [
+        "rating",
+        "price",
+        "is_pushkin_card",
+        "visit_duration_minutes"
+      ],
+      "rating_basis": "attestation",
+      "distance_from_center_km": 0.74,
+      "image_credit": {
+        "author": "Sofiya357",
+        "license": "CC BY-SA 3.0",
+        "file": "File:Ростовский Государственный Театр Кукол им. В.С. Былкова, Ростов-на-Дону.jpg"
+      }
+    }
+  }
+]
