@@ -64,14 +64,15 @@ ELEMENTS = [
         "type": "way",
         "id": 12,
         "center": {"lat": 55.79, "lon": 49.12},
-        "tags": {"name": "Парк крыльев", "leisure": "park"},
+        "tags": {"name": "Парк крыльев", "leisure": "park", "wikidata": "Q999"},
     },
     {
         "type": "node",
         "id": 13,
         "lat": 55.78,
         "lon": 49.13,
-        "tags": {"name": "Кофейня «Пироги»", "amenity": "cafe", "brand": "Пироги"},
+        # A photo typed into OSM itself: the card has something on it without any wiki link.
+        "tags": {"name": "Кофейня «Пироги»", "amenity": "cafe", "brand": "Пироги", "image": "Cafe_pirogi.jpg"},
     },
     {
         "type": "node",
@@ -99,7 +100,13 @@ SPARQL = {
                 "description": {"value": "крупнейший музей Республики Татарстан"},
                 "image": {"value": "https://commons.wikimedia.org/wiki/File:Museum.jpg"},
                 "ruwiki": {"value": "https://ru.wikipedia.org/wiki/Национальный_музей_РТ"},
-            }
+            },
+            {
+                # A park with a sentence but no picture: either half is enough to publish it.
+                "item": {"value": "http://www.wikidata.org/entity/Q999"},
+                "label": {"value": "Парк крыльев"},
+                "description": {"value": "городской парк с велотрассами"},
+            },
         ]
     }
 }
@@ -119,7 +126,17 @@ COMMONS = {
                         },
                     }
                 ],
-            }
+            },
+            "2": {
+                "title": "File:Cafe pirogi.jpg",
+                "imageinfo": [
+                    {
+                        "thumburl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Cafe.jpg/960px-Cafe.jpg",
+                        "url": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Cafe.jpg",
+                        "extmetadata": {"LicenseShortName": {"value": "CC0"}},
+                    }
+                ],
+            },
         }
     }
 }
@@ -231,9 +248,41 @@ def test_dry_run_reports_but_writes_nothing(tmp_path: Path) -> None:
     report = run_ingest(tmp_path, dry_run=True)
 
     assert report.places == 3 and report.written is None
+    assert report.dropped == 0, "каждое место фикстуры чем-то наполнено"
     assert list((tmp_path / "places.d").rglob("*.json")) == []
 
 
+def test_a_place_with_nothing_to_show_is_dropped_before_the_file(tmp_path: Path) -> None:
+    """The gate runs inside the pass, not only as a unit someone has to remember to call.
+
+    Measured on Rostov: 147 objects found, 145 of them able to fill neither a picture nor a sentence.
+    Those are the stops that would open as an empty card one kilometre into a walk.
+    """
+    bare = {
+        "type": "node",
+        "id": 21,
+        "lat": 55.75,
+        "lon": 49.16,
+        "tags": {"name": "Открытая скважина", "tourism": "attraction"},
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "overpass.test":
+            return httpx.Response(200, json={"elements": [*ELEMENTS, bare]})
+        return _respond(request)
+
+    async def go():
+        async with api_with(handler) as api:
+            return await ingest_city(
+                "Тестов", settings=settings_for(), api=api, out_dir=tmp_path / "places.d"
+            )
+
+    report = asyncio.run(go())
+
+    assert report.dropped == 1
+    titles = {entry["title"] for entry in written_records(report)}
+    assert "Открытая скважина" not in titles
+    assert {"Национальный музей", "Парк крыльев", "Кофейня «Пироги»"} <= titles
 def test_a_failed_category_is_reported_not_hidden(tmp_path: Path) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.host == "overpass.test":

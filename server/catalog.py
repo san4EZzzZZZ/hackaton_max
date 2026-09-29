@@ -72,6 +72,31 @@ def data_files() -> list[Path]:
     return files
 
 
+def _validated(path: Path) -> list[Place]:
+    """Every record of one catalog file, refused as a whole if any of them fails to parse."""
+    places: list[Place] = []
+    for index, entry in enumerate(_entries(path)):
+        try:
+            places.append(Place.model_validate(entry))
+        except ValidationError as error:
+            raise CatalogError(f"Invalid place #{index} in {path.name}: {error}") from error
+    return places
+
+
+@lru_cache(maxsize=1)
+def load_seed() -> tuple[Place, ...]:
+    """The hand-checked seed on its own, without the generated cities.
+
+    `python -m ingest` compares a fresh city against this file rather than against `load_places`: the
+    generated file the run is about to overwrite is itself part of that catalog, so measured against
+    the whole, the second run of a city would find everything the first one published already taken
+    and publish nothing at all.
+    """
+    if not DATA_FILE.is_file():
+        raise CatalogError(f"Places catalog not found at {DATA_FILE}")
+    return tuple(_validated(DATA_FILE))
+
+
 @lru_cache(maxsize=1)
 def load_places() -> tuple[Place, ...]:
     if not DATA_FILE.is_file():
@@ -81,11 +106,7 @@ def load_places() -> tuple[Place, ...]:
     seen: set[str] = set()
     paths = data_files()
     for path in paths:
-        for index, entry in enumerate(_entries(path)):
-            try:
-                place = Place.model_validate(entry)
-            except ValidationError as error:
-                raise CatalogError(f"Invalid place #{index} in {path.name}: {error}") from error
+        for place in _validated(path):
             if place.id in seen:
                 logger.warning("Skipping %r in %s: the id is already in the catalog", place.id, path.name)
                 continue

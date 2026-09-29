@@ -20,7 +20,15 @@ from typing import Any
 from core.config import Settings, get_settings
 from ingest.commons import fetch_thumbs
 from ingest.geo import resolve_city
-from ingest.normalize import Candidate, assign_ids, build_candidates, picture_title, select
+from ingest.normalize import (
+    Candidate,
+    assign_ids,
+    build_candidates,
+    fit_to_publish,
+    picture_title,
+    select,
+    title_key,
+)
 from ingest.osm import Element, collect
 from ingest.store import write_city
 from ingest.taxonomy import INTERESTS
@@ -41,13 +49,16 @@ class CityReport:
     fetched: dict[str, int] = field(default_factory=dict)
     published: dict[str, int] = field(default_factory=dict)
     places: int = 0
+    #: Found but not fit to publish: an empty card, or a copy of something the seed already has.
+    dropped: int = 0
     written: str | None = None
     failures: list[str] = field(default_factory=list)
 
     def summary(self) -> str:
         by_category = ", ".join(f"{key}={value}" for key, value in self.published.items()) or "—"
         where = self.written or "(dry run)"
-        return f"{self.city or self.requested}: {self.places} мест ({by_category}) → {where}"
+        dropped = f", отброшено {self.dropped}" if self.dropped else ""
+        return f"{self.city or self.requested}: {self.places} мест ({by_category}){dropped} → {where}"
 
 
 async def ingest_city(
@@ -98,8 +109,17 @@ async def ingest_city(
             pictures,
             core_radius_km=config.ingest_core_radius_km,
         )
+        # Compared against the seed alone: this run is about to overwrite its own city file, and a
+        # generated catalog would otherwise find its previous output already taken.
+        known_titles = frozenset(
+            title_key(place.title)
+            for place in catalog.load_seed()
+            if catalog.city_matches(city.name, place.city)
+        )
+        publishable = fit_to_publish(candidates, known_titles=known_titles)
+        report.dropped = len(candidates) - len(publishable)
         chosen = select(
-            candidates,
+            publishable,
             INTERESTS,
             total_limit=total_limit or config.ingest_max_places_per_city,
             per_category=per_category if per_category is not None else config.ingest_max_per_category,
