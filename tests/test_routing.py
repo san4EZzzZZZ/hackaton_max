@@ -333,6 +333,24 @@ def test_the_start_is_not_a_stop_for_the_spacing_rule() -> None:
     assert [stop.place.id for stop in stops] == ["doorstep", "opposite"]
 
 
+def test_the_place_the_visitor_stands_on_is_not_also_a_stop() -> None:
+    """The setup screen hands over catalog coordinates, so an origin can match a place exactly.
+
+    Closeness is not the rule: the object across the pavement is a hop of its own, and the test above
+    keeps it. Only the place the guest is already at leaves the pool.
+    """
+    doorstep = place("doorstep", lat=47.22, lon=39.72, minutes=20)
+    nearby = place("nearby", lat=47.2201, lon=39.7201, minutes=20)
+    payload = request(duration_hours=2, start_lat=47.22, start_lon=39.72)
+
+    assert [candidate.place.id for candidate in filter_candidates([doorstep, nearby], payload)] == [
+        "nearby"
+    ]
+    assert [
+        candidate.place.id for candidate in filter_candidates([doorstep, nearby], request(duration_hours=2))
+    ] == ["doorstep", "nearby"], "with no origin the same place is an ordinary stop"
+
+
 def test_the_start_lets_the_order_move_the_first_stop_too() -> None:
     """With an origin, 2-opt is allowed to reverse from position 0; without one it is not.
 
@@ -560,6 +578,16 @@ def test_nothing_that_would_have_fit_is_left_behind(start: Location | None) -> N
                     f"{candidate.place.id} was admissible at position {index} — "
                     f"{occupied(gap, start)} min of a {budget} min budget"
                 )
+
+
+# The setup screen offers catalog addresses as starting points, so an origin that is also a place in the
+# pool is the ordinary case here, not an edge one.
+@pytest.mark.parametrize("origin", catalog(), ids=lambda value: value.id)
+def test_the_place_you_stood_on_does_not_come_back_as_a_stop(origin: Place) -> None:
+    stops, _minutes, _cost = walk(4.0, start=origin.location)
+
+    assert origin.id not in {stop.place.id for stop in stops}
+    assert stops, f"four hours from {origin.id} still has somewhere to walk"
 
 
 def test_a_multi_stop_walk_is_not_one_stop_with_decoration() -> None:
