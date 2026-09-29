@@ -49,6 +49,18 @@ GUIDE_MISSING_RESPONSE = {
     "description": "Места с таким идентификатором нет, либо справка для него ещё не написана",
 }
 
+# Admin ingestion answers. The three codes are three different operator actions — set a token, retry
+# later, or fix the header — and collapsing them into one would send the reader to the wrong place.
+INGEST_DISABLED_RESPONSE = {
+    "model": ApiError,
+    "description": "INGEST_TOKEN не задан: автокаталог выключен на этом сервере",
+}
+INGEST_UNAUTHORIZED_RESPONSE = {
+    "model": ApiError,
+    "description": "Заголовок с токеном не передан или не совпадает",
+}
+INGEST_BUSY_RESPONSE = {"model": ApiError, "description": "Прогон уже идёт"}
+
 # SQLite stores integers in 8 bytes and raises OverflowError past this bound instead of answering, so
 # ids are capped at validation: an out-of-range id is a client mistake, not a 500.
 BIGINT_MAX = 9_223_372_036_854_775_807
@@ -110,6 +122,87 @@ class CitySummary(ApiModel):
     city: str = Field(..., description="Название города")
     place_count: int = Field(..., ge=1, description="Число объектов в этом городе")
     categories: list[str] = Field(..., description="Категории этих объектов")
+
+
+# --- Автокаталог (ingest) ---------------------------------------------------------------
+# These models mirror `ingest.pipeline.CityReport`, which is a dataclass in the ingester. The copy is
+# on purpose: the API contract has to stay readable without importing the collector, and a field
+# renamed on one side fails `tests/test_ingest_api.py` rather than silently changing the answer.
+
+
+class IngestRequest(ApiModel):
+    """Запуск сбора мест. Неизвестные ключи отвергаются: молча проигнорированный город обиднее ошибки."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", str_strip_whitespace=True)
+
+    cities: list[str] = Field(
+        ...,
+        min_length=1,
+        max_length=10,
+        description=(
+            "Города по именам, как их понимает Nominatim: «Казань», «Saint Petersburg». Больше десяти "
+            "за раз не просить — прогон держит занятый слот на общем Overpass"
+        ),
+    )
+    limit: int | None = Field(
+        None, ge=1, le=200, description="Максимум мест на город; по умолчанию INGEST_MAX_PLACES_PER_CITY"
+    )
+    dry_run: bool = Field(
+        False,
+        description="Посчитать и показать, ничего не записывать. Отчёт при этом тот же, только без `written`",
+    )
+
+    @field_validator("cities")
+    @classmethod
+    def _drop_blanks(cls, value: list[str]) -> list[str]:
+        cleaned = [city.strip() for city in value if city.strip()]
+        if not cleaned:
+            raise ValueError("cities: нужен хотя бы один непустой город")
+        return cleaned
+
+
+class IngestReport(ApiModel):
+    """Итог обработки одного города."""
+
+    requested: str = Field(..., description="Имя, как его просили")
+    city: str | None = Field(None, description="Как город называется в каталоге после распознавания; null — не найден")
+    source_url: str | None = Field(None, description="Объект города в OpenStreetMap")
+    fetched: dict[str, int] = Field(
+        default_factory=dict, description="Сколько элементов OSM найдено по каждой категории"
+    )
+    published: dict[str, int] = Field(
+        default_factory=dict, description="Сколько мест вошло в файл города по каждой категории"
+    )
+    places: int = Field(0, ge=0, description="Итоговое число мест")
+    written: str | None = Field(
+        None, description="Путь к файлу города; null для dry-run и для города, по которому нечего записывать"
+    )
+    failures: list[str] = Field(
+        default_factory=list, description="Категории и города, которые не удались; пуст, если всё прошло"
+    )
+
+
+class IngestStatus(ApiModel):
+    """Состояние сборщика: идёт ли прогон сейчас и чем закончился предыдущий."""
+
+    enabled: bool = Field(..., description="Настроен ли INGEST_TOKEN; без него запуска здесь нет")
+    running: bool = Field(..., description="Есть ли прогон прямо сейчас")
+    started_at: datetime | None = Field(None, description="Начало текущего или последнего прогона, UTC")
+    finished_at: datetime | None = Field(None, description="Конец того же прогона, UTC")
+    reports: list[IngestReport] = Field(
+        default_factory=list, description="Отчёты последнего прогона, по одному на город"
+    )
+    error: str | None = Field(None, description="Почему прогон упал целиком; null, если не падал")
+
+
+class IngestAccepted(ApiModel):
+    """Ответ запуска: принят ли запрос и что с ним будет дальше."""
+
+    status: Literal["started", "already_running"] = Field(
+        ..., description="already_running — новый прогон не начат, потому что идёт старый"
+    )
+    cities: list[str] = Field(..., description="Города этого запроса")
+    running_since: datetime | None = Field(None, description="Когда началась текущая обработка")
 
 
 class Chip(ApiModel):

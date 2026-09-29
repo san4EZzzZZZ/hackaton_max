@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from server.routers import guides, places, routes, saved_routes
+from server.routers import guides, ingest, places, routes, saved_routes
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(places.router)
@@ -16,5 +16,7 @@ api_router.include_router(guides.router)
 # whichever router is included first. Only GET /routes/generate means anything else: an integer id.
 api_router.include_router(routes.router)
 api_router.include_router(saved_routes.router)
+# The only write endpoint in the API, and the only one behind a token: it refills `data/places.d/`.
+api_router.include_router(ingest.router)
 
 __all__ = ["api_router"]

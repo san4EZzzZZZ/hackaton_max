@@ -597,6 +597,105 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/admin/ingest:
+    post:
+      tags:
+      - Ingest
+      summary: Запустить поиск мест для города
+      description: 'Ищет реальные места в OpenStreetMap, берёт описания и фотографии
+        из Wikidata и Commons и перезаписывает `data/places.d/<город>.json`. Отвечает
+        сразу, не дожидаясь конца: прогресс — в `GET /admin/ingest/status`. Требует
+        заголовок `X-Ingest-Token`. Категории, которыми работает сборщик: Музей, Театр,
+        Галерея, Парк, Памятник, Архитектура, Кафе.'
+      operationId: start_ingest_api_v1_admin_ingest_post
+      parameters:
+      - name: X-Ingest-Token
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Ingest-Token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestRequest'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestAccepted'
+        '401':
+          description: Заголовок с токеном не передан или не совпадает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: Прогон уже идёт
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          description: 'INGEST_TOKEN не задан: автокаталог выключен на этом сервере'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/admin/ingest/status:
+    get:
+      tags:
+      - Ingest
+      summary: Состояние сборщика мест
+      description: 'Идёт ли прогон сейчас и чем закончился последний. Тот же `X-Ingest-Token`,
+        что и для запуска: отчёт показывает, какие города и откуда были собраны.'
+      operationId: ingest_status_api_v1_admin_ingest_status_get
+      parameters:
+      - name: X-Ingest-Token
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Ingest-Token
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestStatus'
+        '401':
+          description: Заголовок с токеном не передан или не совпадает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          description: 'INGEST_TOKEN не задан: автокаталог выключен на этом сервере'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /webhook:
     post:
       summary: Webhook
@@ -908,6 +1007,164 @@ components:
           title: Detail
       type: object
       title: HTTPValidationError
+    IngestAccepted:
+      properties:
+        status:
+          type: string
+          enum:
+          - started
+          - already_running
+          title: Status
+          description: already_running — новый прогон не начат, потому что идёт старый
+        cities:
+          items:
+            type: string
+          type: array
+          title: Cities
+          description: Города этого запроса
+        running_since:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Running Since
+          description: Когда началась текущая обработка
+      type: object
+      required:
+      - status
+      - cities
+      title: IngestAccepted
+      description: 'Ответ запуска: принят ли запрос и что с ним будет дальше.'
+    IngestReport:
+      properties:
+        requested:
+          type: string
+          title: Requested
+          description: Имя, как его просили
+        city:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: City
+          description: Как город называется в каталоге после распознавания; null —
+            не найден
+        source_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Url
+          description: Объект города в OpenStreetMap
+        fetched:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Fetched
+          description: Сколько элементов OSM найдено по каждой категории
+        published:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Published
+          description: Сколько мест вошло в файл города по каждой категории
+        places:
+          type: integer
+          minimum: 0.0
+          title: Places
+          description: Итоговое число мест
+          default: 0
+        written:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Written
+          description: Путь к файлу города; null для dry-run и для города, по которому
+            нечего записывать
+        failures:
+          items:
+            type: string
+          type: array
+          title: Failures
+          description: Категории и города, которые не удались; пуст, если всё прошло
+      type: object
+      required:
+      - requested
+      title: IngestReport
+      description: Итог обработки одного города.
+    IngestRequest:
+      properties:
+        cities:
+          items:
+            type: string
+          type: array
+          maxItems: 10
+          minItems: 1
+          title: Cities
+          description: 'Города по именам, как их понимает Nominatim: «Казань», «Saint
+            Petersburg». Больше десяти за раз не просить — прогон держит занятый слот
+            на общем Overpass'
+        limit:
+          anyOf:
+          - type: integer
+            maximum: 200.0
+            minimum: 1.0
+          - type: 'null'
+          title: Limit
+          description: Максимум мест на город; по умолчанию INGEST_MAX_PLACES_PER_CITY
+        dry_run:
+          type: boolean
+          title: Dry Run
+          description: Посчитать и показать, ничего не записывать. Отчёт при этом
+            тот же, только без `written`
+          default: false
+      additionalProperties: false
+      type: object
+      required:
+      - cities
+      title: IngestRequest
+      description: 'Запуск сбора мест. Неизвестные ключи отвергаются: молча проигнорированный
+        город обиднее ошибки.'
+    IngestStatus:
+      properties:
+        enabled:
+          type: boolean
+          title: Enabled
+          description: Настроен ли INGEST_TOKEN; без него запуска здесь нет
+        running:
+          type: boolean
+          title: Running
+          description: Есть ли прогон прямо сейчас
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+          description: Начало текущего или последнего прогона, UTC
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+          description: Конец того же прогона, UTC
+        reports:
+          items:
+            $ref: '#/components/schemas/IngestReport'
+          type: array
+          title: Reports
+          description: Отчёты последнего прогона, по одному на город
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+          description: Почему прогон упал целиком; null, если не падал
+      type: object
+      required:
+      - enabled
+      - running
+      title: IngestStatus
+      description: 'Состояние сборщика: идёт ли прогон сейчас и чем закончился предыдущий.'
     Location:
       properties:
         lat:
