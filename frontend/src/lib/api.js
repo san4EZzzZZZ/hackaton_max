@@ -39,6 +39,15 @@ export const api = {
   listCategories: () => request('/categories'),
   listChips: (city) =>
     request(`/chips${city ? `?city=${encodeURIComponent(city)}` : ''}`),
+  listPlaces: ({ city, q, limit } = {}) => {
+    const params = new URLSearchParams()
+    if (city) params.set('city', city)
+    // `q` asks for at least two characters on the server; a shorter query would answer 422.
+    if (q && q.trim().length >= 2) params.set('q', q.trim())
+    if (limit) params.set('limit', String(limit))
+    const query = params.toString()
+    return request(`/places${query ? `?${query}` : ''}`)
+  },
   generateRoute: (payload) =>
     request('/routes/generate', { method: 'POST', body: JSON.stringify(payload) }),
 }
