@@ -2,8 +2,21 @@ import { useEffect, useRef, useState } from 'react'
 import PrimaryButton from '../components/PrimaryButton.jsx'
 import { ArrowLeftIcon, SwapIcon } from '../components/icons.jsx'
 import { formatMinutes } from '../lib/format.js'
-import { addLine, addStartDot, createMap, fitTo, removeMarkers, syncMarkers, GREEN, GREY } from '../lib/map.js'
-import { formatDistance, legCaption, pluralStops, pointOf, routePolyline } from '../lib/route.js'
+import {
+  addLine,
+  addStartDot,
+  createMap,
+  dimLine,
+  fitTo,
+  removeMarkers,
+  setLine,
+  syncMarkers,
+  GREY,
+  GREY_DEEP,
+  GREEN_DEEP,
+  ORDER_GRADIENT,
+} from '../lib/map.js'
+import { formatDistance, legCaption, pathLine, pluralStops, pointOf, routePolyline } from '../lib/route.js'
 import styles from './RouteResultScreen.module.css'
 
 export default function RouteResultScreen({ route, onEdit, onStart }) {
@@ -26,9 +39,16 @@ export default function RouteResultScreen({ route, onEdit, onStart }) {
     map.on('load', () => {
       if (line.length >= 2) {
         addLine(map, 'route-line', line, {
+          gradient: measured ? ORDER_GRADIENT : null,
+          color: GREY,
           dashed: !measured,
-          color: measured ? GREEN : GREY,
-          width: 5,
+          width: 6,
+        })
+        // Пустой до первого тапа: данные приходят из эффекта ниже.
+        addLine(map, 'route-focus', [], {
+          color: measured ? GREEN_DEEP : GREY_DEEP,
+          dashed: !measured,
+          width: 7.5,
         })
       }
       if (route.start) addStartDot(map, [route.start.lon, route.start.lat])
@@ -59,6 +79,17 @@ export default function RouteResultScreen({ route, onEdit, onStart }) {
       })),
       setActiveId,
     )
+  }, [ready, activeId, route])
+
+  // Тап по маркеру показывает не только карточку, но и сам путь до неё: на длинном маршруте
+  // остальная линия — шум, и без затемнения её не отличить от нужного отрезка.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready || !map.getLayer('route-focus')) return
+    const index = route.stops.findIndex((stop) => stop.place.id === activeId)
+    const focus = index >= 0 ? pathLine(route, 0, index) : []
+    setLine(map, 'route-focus', focus)
+    dimLine(map, 'route-line', focus.length >= 2)
   }, [ready, activeId, route])
 
   // Тап по маркеру подсвечивает карточку и подвозит шторку к ней: на длинном маршруте подсветка

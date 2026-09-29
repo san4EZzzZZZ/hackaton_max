@@ -8,8 +8,18 @@ setWorkerUrl(maplibreWorker)
 const STYLE = 'https://tiles.openfreemap.org/styles/positron'
 
 export const GREEN = '#10B981'
+export const GREEN_DEEP = '#065F46'
+export const GREEN_PALE = '#34D399'
 export const GREY = '#9CA3AF'
+export const GREY_DEEP = '#4B5563'
 export const START_COLOR = '#3B82F6'
+
+/**
+ * Порядок следования зашит в цвет: от светлого на старте к тёмному на финише. На маршруте из 8 точек
+ * линии накладываются и идут по одним и тем же улицам — без градиента невозможно понять, какой отрезок
+ * куда ведёт.
+ */
+export const ORDER_GRADIENT = [GREEN_PALE, '#059669', GREEN_DEEP]
 
 export function createMap(container) {
   return new GlMap({
@@ -29,8 +39,13 @@ export function createMap(container) {
  * Белая подложка — не украшение: позитрон светлый, и без неё зелёная линия теряется на крышах
  * и на серых дорогах того же веса.
  */
-export function addLine(map, id, coordinates, { color = GREEN, width = 4, dashed = false, casing = !dashed } = {}) {
-  map.addSource(id, { type: 'geojson', data: line(coordinates) })
+export function addLine(
+  map,
+  id,
+  coordinates,
+  { color = GREEN, gradient = null, width = 5.5, dashed = false, casing = !dashed } = {},
+) {
+  map.addSource(id, { type: 'geojson', data: line(coordinates), lineMetrics: Boolean(gradient) })
   const layout = { 'line-cap': 'round', 'line-join': 'round' }
   if (casing) {
     map.addLayer({
@@ -38,17 +53,33 @@ export function addLine(map, id, coordinates, { color = GREEN, width = 4, dashed
       type: 'line',
       source: id,
       layout,
-      paint: { 'line-color': '#fff', 'line-width': width + 4, 'line-opacity': 0.9 },
+      paint: { 'line-color': '#fff', 'line-width': width + 5, 'line-opacity': 0.95 },
     })
   }
-  const paint = { 'line-color': color, 'line-width': width }
+  const paint = { 'line-width': width }
+  // line-gradient и line-dasharray MapLibre не смешивает: пунктир живёт на line-color.
+  if (gradient) paint['line-gradient'] = gradientPaint(gradient)
+  else paint['line-color'] = color
   if (dashed) paint['line-dasharray'] = [2, 2]
   map.addLayer({ id, type: 'line', source: id, layout, paint })
+}
+
+function gradientPaint(colors) {
+  const stops = []
+  colors.forEach((color, index) => stops.push(index / (colors.length - 1), color))
+  return ['interpolate', ['linear'], ['line-progress'], ...stops]
 }
 
 export function setLine(map, id, coordinates) {
   const source = map.getSource(id)
   if (source) source.setData(line(coordinates))
+}
+
+/** Увод линии на второй план: фокус — на подсвеченном отрезке, остальное должно мешать меньше. */
+export function dimLine(map, id, dimmed) {
+  for (const layer of [id, `${id}-casing`]) {
+    if (map.getLayer(layer)) map.setPaintProperty(layer, 'line-opacity', dimmed ? 0.22 : 1)
+  }
 }
 
 /**
@@ -84,6 +115,10 @@ export function addStartDot(map, coordinates) {
  * на любом зуме, а по точке можно попасть пальцем. Состояния (`idle` / `active` / `reached` /
  * `target`) развешиваются на `data-state`, visuals живут в global.css.
  *
+ * Узел, который отдаётся MapLibre, — только про позицию: библиотека каждый кадр пишет в него
+ * `transform` инлайном. Поэтому кружок вложен внутрь, и все `transform` / `transition` — на нём;
+ * иначе анимация цвета и размера тянет за собой координаты, и точки отстают от карты при зуме.
+ *
  * `registry` — Map, которую вызывающий держит рядом с картой: маркеры переживают перерисовку
  * React, а при смене маршрута лишние снимаются здесь же.
  */
@@ -97,6 +132,9 @@ export function syncMarkers(map, registry, points, onSelect) {
       const element = document.createElement('button')
       element.type = 'button'
       element.className = 'stop-marker'
+      entry.disc = document.createElement('span')
+      entry.disc.className = 'stop-marker__disc'
+      element.appendChild(entry.disc)
       element.addEventListener('click', (event) => {
         event.stopPropagation()
         if (entry.onSelect) entry.onSelect(entry.id, entry.index)
@@ -110,7 +148,7 @@ export function syncMarkers(map, registry, points, onSelect) {
     entry.onSelect = onSelect
     entry.index = index
     entry.marker.setLngLat(coord)
-    entry.element.textContent = label
+    entry.disc.textContent = label
     entry.element.dataset.state = state
     entry.element.disabled = !onSelect
     entry.element.setAttribute('aria-label', title)

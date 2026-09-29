@@ -50,8 +50,9 @@ export default function NavigationScreen({ route, onExit }) {
   useEffect(() => {
     const map = createMap(containerRef.current)
     map.on('load', () => {
-      addLine(map, 'path-ahead', ahead, { color: GREY, width: 3.5 })
-      addLine(map, 'path-current', current, { width: 6 })
+      // Остаток маршрута — фон: он показывает, куда идти дальше, но спорить с текущим шагом не должен.
+      addLine(map, 'path-ahead', ahead, { color: GREY, width: 4 })
+      addLine(map, 'path-current', current, { width: 6.5 })
       mapRef.current = map
       setReady(true)
     })
