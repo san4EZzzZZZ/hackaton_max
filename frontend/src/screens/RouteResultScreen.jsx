@@ -1,100 +1,36 @@
 import { useEffect, useRef } from 'react'
-import { Map as GlMap, setWorkerUrl } from 'maplibre-gl'
-import maplibreWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
-import 'maplibre-gl/dist/maplibre-gl.css'
 import PrimaryButton from '../components/PrimaryButton.jsx'
 import { ArrowLeftIcon, SwapIcon } from '../components/icons.jsx'
+import { formatMinutes } from '../lib/format.js'
+import { addDots, addLine, createMap, fitTo, GREEN, GREY } from '../lib/map.js'
+import { formatDistance, legCaption, pluralStops, pointOf, routePolyline } from '../lib/route.js'
 import styles from './RouteResultScreen.module.css'
 
-const ROSTOV_CENTER = [39.72, 47.235]
+const START_COLOR = '#3B82F6'
 
-// Vite's dep-optimizer breaks maplibre's default worker URL resolution.
-setWorkerUrl(maplibreWorker)
-
-function formatDistance(meters) {
-  // 950 m — порог, ниже которого «км» округлились бы в «0.0»: маршрут из двух кофеен рядом
-  // выглядел бы нулевым. Выше порога те же значения округляются до «1.0 км».
-  if (meters < 950) return `${Math.round(meters / 50) * 50} м`
-  return `${(meters / 1000).toFixed(1)} км`
-}
-
-function formatHours(minutes) {
-  const h = Math.floor(minutes / 60)
-  const m = Math.round(minutes % 60)
-  return h > 0 ? `~ ${h} ч ${m} мин` : `~ ${m} мин`
-}
-
-export default function RouteResultScreen({ route, onEdit }) {
+export default function RouteResultScreen({ route, onEdit, onStart }) {
   const mapRef = useRef(null)
-  const totalMinutes = Math.round(route.total_duration_hours * 60)
-  const distanceLabel = formatDistance(route.total_distance_m)
+  // «по тротуарам» и «напрямую» — это одно и то же число из разных миров, и посетитель должен видеть,
+  // из какого: API сам говорит, удалось ли получить линию у роутера.
+  const measured = route.geometry_source === 'osrm'
+  const distanceMeters = route.total_walk_distance_m ?? route.total_distance_m
 
   useEffect(() => {
-    const map = new GlMap({
-      container: mapRef.current,
-      style: 'https://tiles.openfreemap.org/styles/positron',
-      center: ROSTOV_CENTER,
-      zoom: 12.5,
-      attributionControl: false,
-      scrollZoom: false,
-    })
-    const coords = route.stops.map((stop) => [
-      stop.place.location.lon,
-      stop.place.location.lat,
-    ])
+    const map = createMap(mapRef.current)
+    const line = routePolyline(route)
+    const bottomInset = Math.round(window.innerHeight * 0.62) + 24
     map.on('load', () => {
-      if (coords.length === 0) return
-      map.addSource('route-line', {
-        type: 'geojson',
-        data: { type: 'Feature', geometry: { type: 'LineString', coordinates: coords } },
-      })
-      map.addLayer({
-        id: 'route-line',
-        type: 'line',
-        source: 'route-line',
-        paint: { 'line-color': '#10B981', 'line-width': 4 },
-      })
-      map.addSource('route-stops', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: coords.map((c) => ({
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: c },
-          })),
-        },
-      })
-      map.addLayer({
-        id: 'route-stops',
-        type: 'circle',
-        source: 'route-stops',
-        paint: {
-          'circle-radius': 7,
-          'circle-color': '#10B981',
-          'circle-stroke-color': '#fff',
-          'circle-stroke-width': 2.5,
-        },
-      })
-      const lons = coords.map((c) => c[0])
-      const lats = coords.map((c) => c[1])
-      map.fitBounds(
-        [
-          [Math.min(...lons), Math.min(...lats)],
-          [Math.max(...lons), Math.max(...lats)],
-        ],
-        {
-          padding: {
-            top: 110,
-            bottom: Math.round(window.innerHeight * 0.62) + 24,
-            left: 48,
-            right: 48,
-          },
-          duration: 0,
-        },
-      )
+      if (line.length >= 2) {
+        addLine(map, 'route-line', line, { dashed: !measured, color: measured ? GREEN : GREY })
+      }
+      addDots(map, 'route-stops', route.stops.map(pointOf))
+      if (route.start) {
+        addDots(map, 'route-start', [[route.start.lon, route.start.lat]], START_COLOR)
+      }
+      fitTo(map, line.length >= 2 ? line : route.stops.map(pointOf), bottomInset)
     })
     return () => map.remove()
-  }, [route])
+  }, [route, measured])
 
   return (
     <div className={styles.screen}>
@@ -109,30 +45,38 @@ export default function RouteResultScreen({ route, onEdit }) {
 
         <div className={styles.topRow}>
           <div className={styles.topText}>
-            <span className={styles.badge}>Центр Ростова</span>
+            <span className={styles.badge}>{route.city}</span>
             <h1 className={styles.title}>{route.title}</h1>
           </div>
           <div className={styles.stats}>
-            <span className={styles.statMain}>{formatHours(totalMinutes)}</span>
+            <span className={styles.statMain}>{formatMinutes(route.total_duration_minutes)}</span>
             <span className={styles.statSub}>
-              {distanceLabel} • {route.stops.length}{' '}
-              {route.stops.length === 1 ? 'точка' : route.stops.length < 5 ? 'точки' : 'точек'}
+              {formatDistance(distanceMeters)} {measured ? 'по тротуарам' : 'напрямую'} •{' '}
+              {route.stops.length} {pluralStops(route.stops.length)}
             </span>
           </div>
         </div>
+
+        {!measured && route.stops.length > 1 && (
+          <p className={styles.notice}>
+            Сервер маршрутов не ответил, поэтому линия проложена по прямой. Расстояние тоже не
+            измерено: указано то, что видно на карте.
+          </p>
+        )}
 
         {route.stops.length === 0 ? (
           <p className={styles.empty}>Маршрут пуст — попробуйте изменить время или интересы.</p>
         ) : (
           <ol className={styles.stops}>
-            {route.stops.map((stop) => (
+            {route.stops.map((stop, index) => (
               <li key={stop.place.id} className={styles.stop}>
                 <span className={styles.order}>{stop.order}</span>
                 <div className={styles.stopText}>
                   <span className={styles.stopTitle}>{stop.place.title}</span>
                   <span className={styles.stopSub}>
-                    {(stop.place.description || stop.place.address || '') +
-                      ` • ${stop.visit_duration_minutes} мин`}
+                    {index === 0 && !route.start
+                      ? `${stop.visit_duration_minutes} мин`
+                      : `${legCaption(stop)} • ${stop.visit_duration_minutes} мин`}
                   </span>
                 </div>
                 <span className={styles.swap} aria-hidden="true">
@@ -144,7 +88,9 @@ export default function RouteResultScreen({ route, onEdit }) {
         )}
 
         <div className={styles.footer}>
-          <PrimaryButton>Начать прогулку</PrimaryButton>
+          <PrimaryButton onClick={onStart} disabled={route.stops.length === 0}>
+            Начать прогулку
+          </PrimaryButton>
         </div>
       </div>
     </div>

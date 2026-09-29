@@ -222,6 +222,18 @@
   color: #6b7280;
 }
 
+/* Честное предупреждение о линии: оно про качество данных, поэтому не тонет в списке точек. */
+.notice {
+  flex: none;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .footer {
   flex: none;
   padding-top: 18px;

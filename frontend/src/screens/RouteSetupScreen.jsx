@@ -9,6 +9,7 @@ import {
   SearchIcon,
 } from '../components/icons.jsx'
 import { api } from '../lib/api.js'
+import { currentPosition } from '../lib/geo.js'
 import styles from './RouteSetupScreen.module.css'
 
 const DURATIONS = [
@@ -18,28 +19,26 @@ const DURATIONS = [
   { hours: 4, label: '3+ часа' },
 ]
 
-const KNOWN_PLACES = [
-  { name: 'Парк им. Максима Горького', address: 'ул. Большая Садовая, 45' },
-  { name: 'Пушкинская улица', address: 'пересечение с пр. Ворошиловским' },
-  { name: 'Дворец спорта', address: 'ул. Левобережная, 3' },
-  { name: 'Театр Горького', address: 'ул. Большая Садовая, 27' },
-]
-
-const START_LABELS = {
-  geo: 'Текущая геопозиция',
-}
-
 const CITY = 'Ростов-на-Дону'
+
+const GEO_ROW = 'Текущая геопозиция'
 
 export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
   const [duration, setDuration] = useState(initial?.duration ?? 2)
   const [selected, setSelected] = useState(initial?.tags ?? [])
   const [chips, setChips] = useState([])
   const [chipsError, setChipsError] = useState(null)
-  const [start, setStart] = useState('geo')
+  // null — старт не выбран: маршрут начнётся там, где решит планировщик. Координаты, которых нет,
+  // в запрос не отправляются: половина пары `start_lat`/`start_lon` — это 422, а не «не задано».
+  const [start, setStart] = useState(initial?.start ?? null)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [draftStart, setDraftStart] = useState('geo')
+  const [draft, setDraft] = useState(null)
   const [query, setQuery] = useState('')
+  const [places, setPlaces] = useState([])
+  const [placesLoading, setPlacesLoading] = useState(false)
+  const [placesError, setPlacesError] = useState(null)
+  const [geoBusy, setGeoBusy] = useState(false)
+  const [geoError, setGeoError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
 
@@ -62,14 +61,55 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
     }
   }, [])
 
+  // Стартовые точки — реальные места каталога, а не список улиц, вписанный в компонент: список,
+  // составленный руками, устаревает молча и ведёт маршрут к тому, чего уже нет.
+  useEffect(() => {
+    if (!sheetOpen) return undefined
+    let active = true
+    setPlacesLoading(true)
+    const timer = setTimeout(() => {
+      api
+        .searchPlaces({ city: CITY, q: query.trim(), limit: 6 })
+        .then((data) => {
+          if (!active) return
+          setPlaces(data)
+          setPlacesError(null)
+        })
+        .catch((error) => {
+          if (active) setPlacesError(error)
+        })
+        .finally(() => {
+          if (active) setPlacesLoading(false)
+        })
+    }, 250)
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [sheetOpen, query])
+
   const openSheet = () => {
-    setDraftStart(start)
+    setDraft(start)
     setQuery('')
+    setGeoError(null)
     setSheetOpen(true)
   }
 
+  const pickGeo = async () => {
+    setGeoBusy(true)
+    setGeoError(null)
+    try {
+      const coords = await currentPosition()
+      setDraft({ label: GEO_ROW, coords })
+    } catch (error) {
+      setGeoError(error.message)
+    } finally {
+      setGeoBusy(false)
+    }
+  }
+
   const applyStart = () => {
-    setStart(draftStart)
+    setStart(draft)
     setSheetOpen(false)
   }
 
@@ -79,27 +119,17 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
     )
   }
 
-  const q = query.trim().toLowerCase()
-  const visiblePlaces = q
-    ? KNOWN_PLACES.filter(
-        (place) =>
-          place.name.toLowerCase().includes(q) || place.address.toLowerCase().includes(q),
-      )
-    : KNOWN_PLACES
-
   const handleSubmit = async () => {
     setSubmitting(true)
     setSubmitError(null)
     try {
-      await onSubmit({
-        duration,
-        tags: selected,
-        route: await api.generateRoute({
-          city: CITY,
-          tags: selected,
-          duration_hours: duration,
-        }),
-      })
+      const payload = { city: CITY, tags: selected, duration_hours: duration }
+      if (start?.coords) {
+        payload.start_lon = start.coords[0]
+        payload.start_lat = start.coords[1]
+      }
+      const settings = { duration, tags: selected, start }
+      await onSubmit({ ...settings, route: await api.generateRoute(payload) })
     } catch (error) {
       setSubmitError(error)
     } finally {
@@ -173,7 +203,7 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
           <div className={styles.startText}>
             <span className={styles.startLabel}>Старт</span>
             <span className={styles.startValue}>
-              {START_LABELS[start] ?? start}
+              {start?.label ?? 'Первая точка маршрута'}
             </span>
           </div>
           <button type="button" className={styles.startChange} onClick={openSheet}>
@@ -231,48 +261,64 @@ export default function RouteSetupScreen({ onBack, onSubmit, initial }) {
             <div className={styles.sheetBody}>
               <button
                 type="button"
-                className={`${styles.row} ${draftStart === 'geo' ? styles.rowActive : ''}`}
-                onClick={() => setDraftStart('geo')}
+                className={`${styles.row} ${draft?.label === GEO_ROW ? styles.rowActive : ''}`}
+                onClick={pickGeo}
               >
                 <span className={styles.rowIcon} aria-hidden="true">
                   <PinIcon />
                 </span>
                 <span className={styles.rowText}>
-                  <span className={styles.rowLabel}>Определить автоматически</span>
-                  <span className={styles.rowSub}>Использовать GPS телефона</span>
+                  <span className={styles.rowLabel}>
+                    {geoBusy ? 'Ищем координаты…' : 'Определить автоматически'}
+                  </span>
+                  <span className={styles.rowSub}>{geoError || 'Использовать GPS телефона'}</span>
                 </span>
                 <span
-                  className={`${styles.radio} ${draftStart === 'geo' ? styles.radioOn : ''}`}
+                  className={`${styles.radio} ${draft?.label === GEO_ROW ? styles.radioOn : ''}`}
                   aria-hidden="true"
                 />
               </button>
 
               <p className={styles.sheetSection}>
-                {q ? 'Результаты поиска' : 'Популярные точки в центре'}
+                {query.trim() ? 'Результаты поиска' : 'Популярные места города'}
               </p>
-              {visiblePlaces.map(({ name, address }) => (
-                <button
-                  key={name}
-                  type="button"
-                  className={`${styles.row} ${draftStart === name ? styles.rowActive : ''}`}
-                  onClick={() => setDraftStart(name)}
-                >
-                  <span className={styles.rowIcon} aria-hidden="true">
-                    <PinIcon />
-                  </span>
-                  <span className={styles.rowText}>
-                    <span className={styles.rowLabel}>{name}</span>
-                    <span className={styles.rowSub}>{address}</span>
-                  </span>
-                  <span
-                    className={`${styles.radio} ${draftStart === name ? styles.radioOn : ''}`}
-                    aria-hidden="true"
-                  />
-                </button>
-              ))}
-              {q && visiblePlaces.length === 0 && (
-                <p className={styles.searchEmpty}>Ничего не найдено. Попробуйте другой запрос.</p>
+              {placesError ? (
+                <p className={styles.searchEmpty}>{placesError.message}</p>
+              ) : (
+                places.map((place) => (
+                  <button
+                    key={place.id}
+                    type="button"
+                    className={`${styles.row} ${draft?.label === place.title ? styles.rowActive : ''}`}
+                    onClick={() =>
+                      setDraft({
+                        label: place.title,
+                        coords: [place.location.lon, place.location.lat],
+                      })
+                    }
+                  >
+                    <span className={styles.rowIcon} aria-hidden="true">
+                      <PinIcon />
+                    </span>
+                    <span className={styles.rowText}>
+                      <span className={styles.rowLabel}>{place.title}</span>
+                      <span className={styles.rowSub}>{place.address || place.category}</span>
+                    </span>
+                    <span
+                      className={`${styles.radio} ${draft?.label === place.title ? styles.radioOn : ''}`}
+                      aria-hidden="true"
+                    />
+                  </button>
+                ))
               )}
+              {!placesError &&
+                !placesLoading &&
+                places.length === 0 &&
+                query.trim() && (
+                  <p className={styles.searchEmpty}>
+                    Ничего не найдено. Попробуйте другой запрос.
+                  </p>
+                )}
             </div>
 
             <div className={styles.sheetFooter}>
