@@ -155,9 +155,9 @@ def fit_to_publish(
     not among them. Both failures end on the same screen, which is why they live in one filter.
 
     A place with neither a picture nor a sentence is a stop the visitor walks to and then reads
-    nothing about; the Rostov pass measured this directly — 147 objects found, 2 of them able to fill a
-    card. And a building the seed already publishes arrives with a different id, so nothing else stops
-    it standing on the map twice, one metre from its own copy.
+    nothing about, and it is the common case rather than the exception: of the 770 objects one Rostov
+    pass found, 47 reached the file. And a building the seed already publishes arrives with a
+    different id, so nothing else stops it standing on the map twice, one metre from its own copy.
     """
     kept: list[Candidate] = []
     for candidate in candidates:
