@@ -696,6 +696,182 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/events:
+    post:
+      tags:
+      - Analytics
+      summary: Передать событие аналитики
+      description: 'Одно из восьми событий пути: открытие приложения, начало настройки,
+        показ маршрута, старт прохождения, карточка места, завершение, оценка и критическая
+        ошибка клиента. Время ставит сервер в момент приёма, поэтому событию нужно
+        идти сразу, а не копиться до устойчивой связи. `client_error` — восьмое имя,
+        которого нет в списке продукта: без него метрика «техническая стабильность»
+        не из чего считать.'
+      operationId: report_event_api_v1_events_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventRequest'
+      responses:
+        '201':
+          description: Событие записано; `event_id` и `occurred_at` выдаёт база
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventRecord'
+        '422':
+          description: 'Тело не проходит проверку: имя вне списка, идентификатор сессии
+            ненадлежащего вида или поле пришло не со своим событием'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '503':
+          description: База данных не отвечает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    get:
+      tags:
+      - Analytics
+      summary: Принятые события
+      description: 'Свежие сверху. Нужно, чтобы разобрать одну метрику: `GET /metrics/funnel`
+        показывает долю, а почему она такая — видно только по строкам. `session_id`
+        собирает воронку одного посетителя.'
+      operationId: read_events_api_v1_events_get
+      parameters:
+      - name: name
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - miniapp_open
+            - route_setup_started
+            - route_generated
+            - route_started
+            - poi_opened
+            - route_completed
+            - route_rated
+            - client_error
+            type: string
+          - type: 'null'
+          description: Только это событие
+          title: Name
+        description: Только это событие
+      - name: session_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 8
+            maxLength: 64
+          - type: 'null'
+          description: Только эта сессия
+          title: Session Id
+        description: Только эта сессия
+      - name: limit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 1000
+            minimum: 1
+          - type: 'null'
+          description: Сколько записей вернуть
+          title: Limit
+        description: Сколько записей вернуть
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          description: Пропустить N первых записей
+          default: 0
+          title: Offset
+        description: Пропустить N первых записей
+      responses:
+        '200':
+          description: Список событий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventRecord'
+                title: Response Read Events Api V1 Events Get
+          headers:
+            X-Total-Count:
+              description: Сколько объектов подошло под фильтры, до применения limit/offset
+              schema:
+                type: integer
+                minimum: 0
+            X-Offset:
+              description: Смещение, с которого взята текущая страница
+              schema:
+                type: integer
+                minimum: 0
+        '503':
+          description: База данных не отвечает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/metrics/funnel:
+    get:
+      tags:
+      - Analytics
+      summary: Метрики пилота
+      description: 'Та же таблица, что в продуктовой проработке: семь строк, у каждой
+        — как считаем, целевая гипотеза, текущее значение и знаменатель. Пустая выборка
+        даёт `null`, а не ноль: «некому было завершать маршрут» и «никто не завершил»
+        — разные новости для разных людей. Отсчёт идёт от серверных меток времени,
+        потому что клиентские часы воронку искажают.'
+      operationId: read_funnel_api_v1_metrics_funnel_get
+      parameters:
+      - name: days
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 366
+          minimum: 1
+          description: За сколько дней считать
+          default: 30
+          title: Days
+        description: За сколько дней считать
+      responses:
+        '200':
+          description: 'Все семь метрик за окно; `value: null` — под формулу не попал
+            никто'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FunnelReport'
+        '503':
+          description: База данных не отвечает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /webhook:
     post:
       summary: Webhook
@@ -876,6 +1052,293 @@ components:
       title: CitySummary
       description: One city present in the catalog; the seed data holds a single one
         for now.
+    EventRecord:
+      properties:
+        name:
+          type: string
+          enum:
+          - miniapp_open
+          - route_setup_started
+          - route_generated
+          - route_started
+          - poi_opened
+          - route_completed
+          - route_rated
+          - client_error
+          title: Name
+          description: 'Что произошло: `miniapp_open` — открыли приложение, `route_setup_started`
+            — начали настройку, `route_generated` — маршрут показан, `route_started`
+            — нажали «Начать», `poi_opened` — открыли карточку места, `route_completed`
+            — прогулку завершили, `route_rated` — поставили оценку, `client_error`
+            — критическая ошибка на стороне клиента'
+        session_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{8,64}$
+          title: Session Id
+          description: 'Идентификатор сессии Mini App: одна прогулка одного посетителя,
+            все семь метрик считаются по нему. От 8 до 64 знаков из `[A-Za-z0-9_-]`,
+            обычно `crypto.randomUUID()`'
+        user_id:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            minimum: 1.0
+          - type: 'null'
+          title: User Id
+          description: Аккаунт MAX, если он известен клиенту. Не аутентификация —
+            как у сохранённых маршрутов
+        route_id:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Route Id
+          description: '`route_id` из ответа генератора — связывает события одной
+            прогулки'
+        place_id:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Place Id
+          description: Идентификатор места; обязателен у `poi_opened`
+        rating:
+          anyOf:
+          - type: integer
+            maximum: 5.0
+            minimum: 1.0
+          - type: 'null'
+          title: Rating
+          description: Оценка полезности 1–5; обязательна у `route_rated`
+        requested_minutes:
+          anyOf:
+          - type: integer
+            maximum: 1440.0
+            minimum: 1.0
+          - type: 'null'
+          title: Requested Minutes
+          description: Сколько времени заказывали, мин; обязательна у `route_completed`
+        actual_minutes:
+          anyOf:
+          - type: integer
+            maximum: 1440.0
+            minimum: 0.0
+          - type: 'null'
+          title: Actual Minutes
+          description: Сколько прогулка заняла на самом деле, мин; обязателен у `route_completed`
+        detail:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Detail
+          description: Текст ошибки; принимается только у `client_error`
+        event_id:
+          type: integer
+          title: Event Id
+          description: Идентификатор записи, выдаёт база
+        occurred_at:
+          type: string
+          format: date-time
+          title: Occurred At
+          description: 'Момент, когда сервер принял событие, UTC. Клиентскую метку
+            времени не принимаем: интервалы воронки измеряются между событиями одной
+            сессии, и часы устройства-отправителя сделали бы из «времени до маршрута»
+            время погрешности этих часов'
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      - session_id
+      - event_id
+      - occurred_at
+      title: EventRecord
+      description: 'Событие так, как оно легло в базу: время ставит сервер, идентификатор
+        выдаёт таблица.'
+    EventRequest:
+      properties:
+        name:
+          type: string
+          enum:
+          - miniapp_open
+          - route_setup_started
+          - route_generated
+          - route_started
+          - poi_opened
+          - route_completed
+          - route_rated
+          - client_error
+          title: Name
+          description: 'Что произошло: `miniapp_open` — открыли приложение, `route_setup_started`
+            — начали настройку, `route_generated` — маршрут показан, `route_started`
+            — нажали «Начать», `poi_opened` — открыли карточку места, `route_completed`
+            — прогулку завершили, `route_rated` — поставили оценку, `client_error`
+            — критическая ошибка на стороне клиента'
+        session_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{8,64}$
+          title: Session Id
+          description: 'Идентификатор сессии Mini App: одна прогулка одного посетителя,
+            все семь метрик считаются по нему. От 8 до 64 знаков из `[A-Za-z0-9_-]`,
+            обычно `crypto.randomUUID()`'
+        user_id:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            minimum: 1.0
+          - type: 'null'
+          title: User Id
+          description: Аккаунт MAX, если он известен клиенту. Не аутентификация —
+            как у сохранённых маршрутов
+        route_id:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Route Id
+          description: '`route_id` из ответа генератора — связывает события одной
+            прогулки'
+        place_id:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Place Id
+          description: Идентификатор места; обязателен у `poi_opened`
+        rating:
+          anyOf:
+          - type: integer
+            maximum: 5.0
+            minimum: 1.0
+          - type: 'null'
+          title: Rating
+          description: Оценка полезности 1–5; обязательна у `route_rated`
+        requested_minutes:
+          anyOf:
+          - type: integer
+            maximum: 1440.0
+            minimum: 1.0
+          - type: 'null'
+          title: Requested Minutes
+          description: Сколько времени заказывали, мин; обязательна у `route_completed`
+        actual_minutes:
+          anyOf:
+          - type: integer
+            maximum: 1440.0
+            minimum: 0.0
+          - type: 'null'
+          title: Actual Minutes
+          description: Сколько прогулка заняла на самом деле, мин; обязателен у `route_completed`
+        detail:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Detail
+          description: Текст ошибки; принимается только у `client_error`
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      - session_id
+      title: EventRequest
+      description: 'Одно событие аналитики. Неизвестные ключи отвергаются: опечатка
+        в имени поля иначе тихонько
+
+        пропала бы из метрик, а не вернула 422.'
+    FunnelMetric:
+      properties:
+        key:
+          type: string
+          title: Key
+          description: Machine-имя метрики — его подставляет дашборд
+        label:
+          type: string
+          title: Label
+          description: Название метрики словами продукта
+        formula:
+          type: string
+          title: Formula
+          description: Как считаем
+        target:
+          type: string
+          title: Target
+          description: Целевая гипотеза пилота
+        unit:
+          type: string
+          enum:
+          - minutes
+          - ratio
+          title: Unit
+          description: Доли (0..1) это или минуты
+        value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Value
+          description: Значение за окно; null — под формулу не попадает ни одного
+            наблюдения
+        reached:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Reached
+          description: Дотягивает ли до гипотезы; null вместе с `value`
+        sample:
+          type: integer
+          minimum: 0.0
+          title: Sample
+          description: 'Знаменатель: сколько наблюдений стоит за числом. Доля на трёх
+            случаях — ещё не доля'
+      type: object
+      required:
+      - key
+      - label
+      - formula
+      - target
+      - unit
+      - sample
+      title: FunnelMetric
+      description: 'Одна строка таблицы метрик пилота: как считаем, что получилось,
+        дотягивает ли до гипотезы.'
+    FunnelReport:
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+          description: Момент расчёта, UTC
+        window_days:
+          type: integer
+          minimum: 1.0
+          title: Window Days
+          description: За сколько дней до расчёта считаем
+        sessions:
+          type: integer
+          minimum: 0.0
+          title: Sessions
+          description: Сколько разных `session_id` попало в окно
+        events:
+          type: integer
+          minimum: 0.0
+          title: Events
+          description: Сколько событий попало в окно
+        metrics:
+          items:
+            $ref: '#/components/schemas/FunnelMetric'
+          type: array
+          title: Metrics
+          description: Строки таблицы §8, в её же порядке
+      type: object
+      required:
+      - generated_at
+      - window_days
+      - sessions
+      - events
+      - metrics
+      title: FunnelReport
+      description: Все семь метрик §8 одним ответом — таблица, которую продукт ждёт
+        от пилота.
     GuideMedia:
       properties:
         url:
@@ -1512,7 +1975,9 @@ components:
           maximum: 12.0
           exclusiveMinimum: 0.0
           title: Duration Hours
-          description: Желаемая длительность, ч.
+          description: 'Желаемая длительность, ч. Маршрут планируется короче: 15 %
+            этого времени остаётся в резерве на очереди и темп прогулки, а не отдаётся
+            новой точке'
           default: 4.0
         start_lat:
           anyOf:
@@ -1580,8 +2045,9 @@ components:
             minimum: 0.0
           - type: 'null'
           title: Slack Minutes
-          description: 'Незанятые минуты из заказанной длительности. Запас не резервируется:
-            маршрут плотный, но эти минуты уходят на темп прогулки и случайные остановки'
+          description: 'Свободные минуты до конца заказанной длительности. Планировщик
+            тратит не больше 85 % запрошенного времени: остальные 15 % — резерв на
+            очереди, закрытую дверь и темп прогулки'
         total_cost:
           type: number
           minimum: 0.0
@@ -1737,8 +2203,9 @@ components:
             minimum: 0.0
           - type: 'null'
           title: Slack Minutes
-          description: 'Незанятые минуты из заказанной длительности. Запас не резервируется:
-            маршрут плотный, но эти минуты уходят на темп прогулки и случайные остановки'
+          description: 'Свободные минуты до конца заказанной длительности. Планировщик
+            тратит не больше 85 % запрошенного времени: остальные 15 % — резерв на
+            очереди, закрытую дверь и темп прогулки'
         total_cost:
           type: number
           minimum: 0.0

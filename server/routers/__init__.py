@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from server.routers import guides, ingest, places, routes, saved_routes
+from server.routers import analytics, guides, ingest, places, routes, saved_routes
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(places.router)
@@ -18,5 +18,8 @@ api_router.include_router(routes.router)
 api_router.include_router(saved_routes.router)
 # The only write endpoint in the API, and the only one behind a token: it refills `data/places.d/`.
 api_router.include_router(ingest.router)
+# Telemetry of its own: it stores what the Mini App reports and reads §8 back out of it. It shares no
+# code with the generator — an event about a route is not a fact the planner has to know.
+api_router.include_router(analytics.router)
 
 __all__ = ["api_router"]

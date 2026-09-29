@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import PrimaryButton from '../components/PrimaryButton.jsx'
-import { ArrowLeftIcon, SwapIcon } from '../components/icons.jsx'
+import { ArrowLeftIcon, NavigationIcon, SwapIcon } from '../components/icons.jsx'
 import { formatMinutes } from '../lib/format.js'
 import {
   addLine,
@@ -140,6 +140,21 @@ export default function RouteResultScreen({ route, onEdit, onStart }) {
           <p className={styles.empty}>Маршрут пуст — попробуйте изменить время или интересы.</p>
         ) : (
           <ol className={styles.stops} ref={listRef}>
+            {route.start && (
+              // Переход от старта — не остановка, а путь до первой двери: своя строка, чтобы
+              // карточка места оставалась рассказом про место, а не про дорогу до него.
+              <li className={styles.stop}>
+                <span className={styles.startBadge} aria-hidden="true">
+                  <NavigationIcon />
+                </span>
+                <div className={styles.stopText}>
+                  <span className={styles.stopTitle}>Старт</span>
+                  <span className={styles.stopSub}>
+                    {`${legCaption(route.stops[0])} • ≈${formatMinutes(route.stops[0].travel_minutes_from_prev)} пешком`}
+                  </span>
+                </div>
+              </li>
+            )}
             {route.stops.map((stop, index) => (
               <li
                 key={stop.place.id}
@@ -150,7 +165,7 @@ export default function RouteResultScreen({ route, onEdit, onStart }) {
                 <div className={styles.stopText}>
                   <span className={styles.stopTitle}>{stop.place.title}</span>
                   <span className={styles.stopSub}>
-                    {index === 0 && !route.start
+                    {index === 0
                       ? `${stop.visit_duration_minutes} мин`
                       : `${legCaption(stop)} • ${stop.visit_duration_minutes} мин`}
                   </span>

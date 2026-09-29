@@ -231,7 +231,9 @@ def test_the_origin_moves_the_walk_to_the_far_side_of_the_city(generated: TestCl
     """Standing nine kilometres out, the visitor is shown what is around them, not the city centre.
 
     The core is closer to unreachable than to a first stop: `filter_candidates` drops what cannot be
-    walked to inside the requested time, so the far pair is all the two remaining hours can spend.
+    walked to inside the requested time, so the far pair is all the two remaining hours can spend. And
+    the museum the origin stands on is not offered back as a stop with a zero-metre walk to it — the
+    walk starts at the next door.
     """
     answer = generate(
         generated,
@@ -241,5 +243,5 @@ def test_the_origin_moves_the_walk_to_the_far_side_of_the_city(generated: TestCl
         start_lon=CORE["lon"],
     ).json()
 
-    assert [place["id"] for place in stop_places(answer)] == ["edge-0", "edge-1"]
+    assert [place["id"] for place in stop_places(answer)] == ["edge-1"]
     assert answer["total_duration_minutes"] <= 120

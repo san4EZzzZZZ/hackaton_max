@@ -39,12 +39,14 @@ export const api = {
   listCategories: () => request('/categories'),
   listChips: (city) =>
     request(`/chips${city ? `?city=${encodeURIComponent(city)}` : ''}`),
-  /** Реальные места каталога — для поиска стартовой точки, а не для выдуманного списка. */
-  searchPlaces: ({ city, q, limit = 8 }) => {
-    const params = new URLSearchParams({ limit: String(limit) })
+  listPlaces: ({ city, q, limit } = {}) => {
+    const params = new URLSearchParams()
     if (city) params.set('city', city)
-    if (q) params.set('q', q)
-    return request(`/places?${params}`)
+    // `q` asks for at least two characters on the server; a shorter query would answer 422.
+    if (q && q.trim().length >= 2) params.set('q', q.trim())
+    if (limit) params.set('limit', String(limit))
+    const query = params.toString()
+    return request(`/places${query ? `?${query}` : ''}`)
   },
   /** Справка о месте: история, факты для тех, кто стоит рядом. 404 — справки ещё нет. */
   getGuide: (placeId) => request(`/places/${encodeURIComponent(placeId)}/guide`),

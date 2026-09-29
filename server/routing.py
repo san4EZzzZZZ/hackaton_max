@@ -5,8 +5,12 @@ ordering then applies 2-opt reversals to shorten the chain of transfers between 
 deterministic (stable tie-breaks) so the same request always yields the same route.
 
 When the request names an origin, the chain starts there: the walk to the first door is budgeted,
-places too far to reach in the time given are dropped before selection, and the first stop is no longer
-pinned to the search's own choice.
+places too far to reach in the time given are dropped before selection, the place the origin stands on
+is not offered back as a stop, and the first stop is no longer pinned to the search's own choice.
+
+What gets budgeted is not the whole requested time: `TIME_RESERVE` of it stays unspent so the day has
+somewhere to put a queue, and every rule that asks "does this still fit" asks against the same
+`planned_minutes` number.
 
 Selection is a beam search rather than a greedy step because a greedy step cannot see ahead: on the
 real catalog it spent 150 of 240 minutes on one theatre and returned a 4-hour route with fewer stops
@@ -43,6 +47,18 @@ MIN_SPACING_M = 150.0
 # minutes on the path between them and calls the result a route. A hop longer than this is a trip
 # somewhere else, not a stop on this walk.
 MAX_LEG_KM = 2.5
+
+# The plan is the walk, the day is what the walk takes. Queues, a closed door and one exhibit that turns
+# out to be worth an hour all live outside `visit_duration_minutes`, and a route that fills the requested
+# hour to the last minute has nowhere to put them. So a slice of the requested time is never spent: the
+# product asks for 15–20 %, and 15 % is the one that still costs only a stop on a three- and four-hour
+# day (20 % takes one back from a two-hour walk as well).
+TIME_RESERVE = 0.15
+
+
+def planned_minutes(duration_hours: float) -> int:
+    """How much of the requested time the engine may spend on the plan; the rest is the reserve."""
+    return int(duration_hours * 60 * (1 - TIME_RESERVE))
 
 # Selection is exponential in the number of stops, so it is explored as a beam: a few promising
 # starting objects, each keeping its `BEAM_WIDTH` best partial routes per extension step. The cap bounds
@@ -89,12 +105,13 @@ class _Candidate:
 def filter_candidates(places: list[Place], request: RouteRequest) -> list[_Candidate]:
     """Apply the hard constraints: city, categories, mood tags, Pushkin Card, budget and time ceiling.
 
-    An origin adds one more: a place the visitor cannot walk to inside the time they asked for is not a
-    candidate at all, however good it is once reached.
+    An origin adds two more: a place the visitor cannot walk to inside the time they asked for is not a
+    candidate at all, however good it is once reached, and a place standing exactly where they already
+    stand is not a walk but the starting point of one.
     """
     wanted_categories = {category.strip().lower() for category in request.categories}
     wanted_tags = normalize_tags(request.tags)
-    time_budget = int(request.duration_hours * 60)
+    time_budget = planned_minutes(request.duration_hours)
     start = request.start
 
     result: list[_Candidate] = []
@@ -116,6 +133,11 @@ def filter_candidates(places: list[Place], request: RouteRequest) -> list[_Candi
         # Or one the visitor cannot walk to in the time they have: the direct hop is the cheapest
         # arrival there is, since every extra stop adds both a visit and its own transfer allowance.
         if start is not None and travel_minutes(start, place.location) > time_budget:
+            continue
+        # And one they are already standing at. Coincidence, not closeness: an object across the pavement
+        # is a real hop of its own, and the frontend picks starts from this same catalog, so without this
+        # rule the walk sends the guest to the place they said they were at.
+        if start is not None and place.location == start:
             continue
         result.append(_Candidate(place=place, rating=place.rating))
     return result
@@ -372,9 +394,10 @@ def assemble_route(
     """Build an ordered route; returns stops, total minutes and total cost.
 
     The minutes and the distance returned here start at `request.start` when the client sent one, so the
-    walk it reports is the walk the visitor actually makes.
+    walk it reports is the walk the visitor actually makes — and they stop `TIME_RESERVE` of the asked
+    time before the clock they gave runs out.
     """
-    time_budget = int(request.duration_hours * 60)
+    time_budget = planned_minutes(request.duration_hours)
     budget = request.max_budget
     start = request.start
 
