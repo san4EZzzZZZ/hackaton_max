@@ -25,3 +25,12 @@ README.md
 LICENSE
 tests/
 .pytest_cache/
+.ruff_cache/
+# У образа бота нет причин тащить фронт: 85 МБ node_modules в контексте сборки — это секунды на
+# каждом доке, а не содержимое образа. Mini App собирается своим Dockerfile (frontend/).
+frontend/
+# Локальные бинарники (gh, cloudflared), старые копии прод-базы и черновики деплоя.
+tools/
+.worktrees/
+.kilo/
+*.log
