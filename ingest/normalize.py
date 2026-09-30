@@ -393,13 +393,21 @@ def _title(tags: dict[str, str], entity: Entity | None) -> str | None:
     return None
 
 
+#: Памятники культурного наследия носят в OSM-описании номер госреестра: «Особняк Парамонова
+#: 611510279110006». Карточка с таким «предложением» читается как ошибка, поэтому номер вырезается,
+#: а если после него остаётся только название — описание считается отсутствующим.
+_REGISTRY_NUMBER = re.compile(r"\s*\d{10,}\s*")
+
+
 def _description(tags: dict[str, str], entity: Entity | None) -> str | None:
     """OSM prose first, Wikidata's one-liner second.
 
     A mappers' `description` is usually a sentence about the place; `schema:description` is a
     taxonomy line («музей в Татарстане») that reads badly on a card but beats showing nothing.
     """
-    osm_text = (tags.get("description") or "").strip()
+    osm_text = _REGISTRY_NUMBER.sub(" ", (tags.get("description") or "").strip()).strip()
+    if title_key(osm_text) == title_key((tags.get("name") or "").strip()):
+        osm_text = ""
     if len(osm_text) >= 40:
         return osm_text[:600]
     if entity and entity.description:
