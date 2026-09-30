@@ -26,7 +26,9 @@ services:
       # Регистрация меню команд и подписки стучится в MAX. Показ каталога и маршрутов от неё не зависит,
       # так что по умолчанию выключено: локальный прогон не должен дёргать живой API чужим токеном.
       AUTO_SETUP: ${AUTO_SETUP:-false}
-      DATABASE_URL: ${DATABASE_URL:-sqlite+aiosqlite:///data/bot.db}
+      # База живёт в именованном томе, а не в примонтированной папке ./data: каталог мест принадлежит
+      # пользователю хоста и для контейнера недоступен на запись, а SQLite обязан писать.
+      DATABASE_URL: ${DATABASE_URL:-sqlite+aiosqlite:///state/bot.db}
       # Пустой INGEST_TOKEN оставляет эндпоинты автокаталога с 503 — они переписывают каталог целиком.
       INGEST_TOKEN: ${INGEST_TOKEN:-}
       OSRM_URL: ${OSRM_URL:-https://routing.openstreetmap.de/routed-foot}
@@ -40,6 +42,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./certs:/app/certs:ro
+      - bot-state:/app/state
     restart: unless-stopped
     healthcheck:
       test:
@@ -66,3 +69,7 @@ services:
     ports:
       - "${MINIAPP_PORT:-8081}:80"
     restart: unless-stopped
+
+volumes:
+  # Именованный том для базы: переживает `docker compose down` и пересборку образа, удаляется только `down -v`.
+  bot-state:
