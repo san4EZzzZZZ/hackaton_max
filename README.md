@@ -48,6 +48,7 @@ HTTP **API** (каталог мест, генератор маршрутов, с
 | известные ограничения | [Известные ограничения](#известные-ограничения) |
 | порядок остановки и повторного запуска | [Остановка и повторный запуск](#остановка-и-повторный-запуск) |
 | спецификация OpenAPI | [DATA-API.yaml](DATA-API.yaml), [openapi.json](openapi.json), `/docs` |
+| презентация в PDF | [submission-deck.pdf](submission-deck.pdf) (исходник — [submission-deck.pptx](submission-deck.pptx)) |
 | frozen version (commit) | git tag `submitted` — `git rev-parse submitted^{commit}` |
 
 ## Архитектура
