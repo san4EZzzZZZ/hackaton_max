@@ -1,0 +1,3770 @@
+{
+  "x-check": {
+    "config_version": "1.0",
+    "solution": "Цифровой навигатор и конструктор маршрутов выходного дня в мессенджере MAX",
+    "team": "Хакатон МАХ 91",
+    "repository": "https://github.com/san4EZzzZZZ/hackaton_max",
+    "base_url": "https://max.chestnyidiplom.ru/api/v1",
+    "mini_app_url": "https://max.chestnyidiplom.ru/",
+    "test_accounts": [
+      {
+        "role": "гость",
+        "login": "не требуется",
+        "note": "У публичных эндпоинтов /api/v1 аутентификации нет намеренно: ни сессии, ни токена, ни куки. Все проверки основного сценария выполняются без учётной записи."
+      },
+      {
+        "role": "редактор каталога",
+        "login": "заголовок X-Ingest-Token",
+        "note": "Единственная защищённая операция — POST /api/v1/admin/ingest. Значение токена выдаётся проверяющему вместе с доступом к .env проверяемого экземпляра; без INGEST_TOKEN эндпоинт отвечает 503 и это не ошибка проверки."
+      }
+    ],
+    "test_data": {
+      "places": "data/places.json — 43 вручную сверенных места Ростова-на-Дону (в репозитории)",
+      "generated_places": "data/places.d/rostov-na-donu.json — 47 мест того же города, собранных `python -m ingest`; после клона в каталоге один город и 90 мест",
+      "guides": "data/place_guides.json — 8 написанных справок",
+      "cities": "data/cities.json — список городов для `python -m ingest --all`",
+      "note": "База (`data/bot.db`) для проверки не нужна: каталог, маршруты и справки читаются из JSON. В репозитории лежат только тестовые данные, ни одного персонального."
+    },
+    "mandatory_checks": [
+      {
+        "check": "каталог не пустой и знает города",
+        "method": "GET",
+        "path": "/api/v1/cities",
+        "role": "гость",
+        "expected_status": [
+          200
+        ],
+        "content_type": "application/json",
+        "fields": [
+          "city",
+          "place_count",
+          "categories"
+        ]
+      },
+      {
+        "check": "ряд «Чем хочешь заняться?» строится из ответа, пустого чипа не бывает",
+        "method": "GET",
+        "path": "/api/v1/chips",
+        "params": {
+          "query": "city=Ростов-на-Дону"
+        },
+        "role": "гость",
+        "expected_status": [
+          200
+        ],
+        "content_type": "application/json",
+        "fields": [
+          "id",
+          "label",
+          "emoji",
+          "tags",
+          "place_count"
+        ]
+      },
+      {
+        "check": "фильтр по городу и тегу находит места, итог пагинации — в заголовке",
+        "method": "GET",
+        "path": "/api/v1/places",
+        "params": {
+          "query": "city=Ростов-на-Дону&tag=coffee&limit=5"
+        },
+        "role": "гость",
+        "expected_status": [
+          200
+        ],
+        "content_type": "application/json",
+        "fields": [
+          "id",
+          "title",
+          "category",
+          "city",
+          "location"
+        ],
+        "headers": {
+          "X-Total-Count": "размер выборки до limit"
+        }
+      },
+      {
+        "check": "маршрут собирается под бюджет времени и interest, переходы измерены по тротуарам",
+        "method": "POST",
+        "path": "/api/v1/routes/generate",
+        "params": {
+          "body": {
+            "city": "Ростов-на-Дону",
+            "tags": [
+              "culture"
+            ],
+            "duration_hours": 3,
+            "start_lat": 47.2219,
+            "start_lon": 39.7139
+          }
+        },
+        "role": "гость",
+        "expected_status": [
+          200,
+          404,
+          422
+        ],
+        "expected_status_note": "200 — маршрут есть; 404 — под фильтр ничего не подошло (в том числе города нет в данных); 422 — теле запроса некорректно, например передана только одна координата старта",
+        "content_type": "application/json",
+        "fields": [
+          "route_id",
+          "title",
+          "city",
+          "stops",
+          "total_duration_minutes",
+          "total_distance_m",
+          "total_walk_distance_m",
+          "geometry_source",
+          "slack_minutes"
+        ]
+      },
+      {
+        "check": "маршрут переживает перезапуск процесса",
+        "method": "POST",
+        "path": "/api/v1/routes",
+        "params": {
+          "body": "дословный ответ генератора, плюс необязательный целый user_id"
+        },
+        "role": "гость",
+        "expected_status": [
+          201,
+          503
+        ],
+        "expected_status_note": "503 — база не отвечает",
+        "content_type": "application/json",
+        "fields": [
+          "route_id",
+          "user_id",
+          "stop_count",
+          "created_at",
+          "route"
+        ]
+      },
+      {
+        "check": "справка по месту отдаётся там, где она написана, и честно говорит 404 где ещё нет",
+        "method": "GET",
+        "path": "/api/v1/places/{place_id}/guide",
+        "params": {
+          "path": "place_id=theatre-square"
+        },
+        "role": "гость",
+        "expected_status": [
+          200,
+          404
+        ],
+        "expected_status_note": "404 — справки ещё нет, это очередь а не ошибка",
+        "content_type": "application/json",
+        "fields": [
+          "history",
+          "highlights",
+          "nearby"
+        ]
+      },
+      {
+        "check": "событие воронки принимается, метрики считаются по сессиям",
+        "method": "POST",
+        "path": "/api/v1/events",
+        "params": {
+          "body": {
+            "name": "miniapp_open",
+            "session_id": "check-00000001"
+          }
+        },
+        "role": "гость",
+        "expected_status": [
+          201,
+          422
+        ],
+        "expected_status_note": "422 — поле чужого события (например rating у miniapp_open)",
+        "content_type": "application/json",
+        "fields": [
+          "event_id",
+          "name",
+          "session_id",
+          "occurred_at"
+        ]
+      },
+      {
+        "check": "семь метрик пилота отдаются одним запросом, пустая выборка — null а не 0",
+        "method": "GET",
+        "path": "/api/v1/metrics/funnel",
+        "params": {
+          "query": "days=30"
+        },
+        "role": "гость",
+        "expected_status": [
+          200
+        ],
+        "content_type": "application/json",
+        "fields": [
+          "generated_at",
+          "window_days",
+          "sessions",
+          "events",
+          "metrics"
+        ],
+        "metrics_item_fields": [
+          "key",
+          "label",
+          "formula",
+          "target",
+          "unit",
+          "value",
+          "reached",
+          "sample"
+        ]
+      },
+      {
+        "check": "поиск мест по городу запускается по HTTP и не трогает каталог в dry_run",
+        "method": "POST",
+        "path": "/api/v1/admin/ingest",
+        "params": {
+          "headers": "X-Ingest-Token",
+          "body": {
+            "cities": [
+              "Ростов-на-Дону"
+            ],
+            "dry_run": true
+          }
+        },
+        "role": "редактор каталога",
+        "expected_status": [
+          200,
+          401,
+          503
+        ],
+        "expected_status_note": "503 — INGEST_TOKEN не задан; 401 — заголовок X-Ingest-Token не совпал",
+        "content_type": "application/json",
+        "fields": [
+          "requested",
+          "city",
+          "places",
+          "published",
+          "dropped",
+          "failures"
+        ]
+      },
+      {
+        "check": "готовность отличается от живости: /health отвечает всегда, /readyz — только когда база отвечает",
+        "method": "GET",
+        "path": "/readyz",
+        "role": "гость",
+        "expected_status": [
+          200,
+          503
+        ],
+        "content_type": "application/json",
+        "fields": [
+          "status"
+        ]
+      }
+    ]
+  },
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MAX Hackathon API",
+    "description": "Спецификация DATA-API: цифровой навигатор и конструктор маршрутов выходного дня в мессенджере MAX.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/places": {
+      "get": {
+        "tags": [
+          "Places"
+        ],
+        "summary": "Список достопримечательностей",
+        "description": "Фильтры комбинируются между собой: `category` отвечает «что это за объект», `tag` — «зачем сюда идут», и это независимые оси. Порядок ответа — порядок в каталоге, радиус ничего не пересортировывает. Сколько объектов подошло до limit/offset — в заголовке X-Total-Count.",
+        "operationId": "list_places_api_v1_places_get",
+        "parameters": [
+          {
+            "name": "city",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Фильтр по городу, подходит краткая форма — «Ростов»",
+              "title": "City"
+            },
+            "description": "Фильтр по городу, подходит краткая форма — «Ростов»"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Фильтр по категории",
+              "title": "Category"
+            },
+            "description": "Фильтр по категории"
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Фильтр по настроению: id из `GET /chips`, повторяется в URL несколько раз. Внутри списка — ИЛИ (место годится, если у него есть хотя бы одна из запрошенных меток), с `category` — И. Неизвестный id не находит ничего, как и неизвестная категория",
+              "title": "Tag"
+            },
+            "description": "Фильтр по настроению: id из `GET /chips`, повторяется в URL несколько раз. Внутри списка — ИЛИ (место годится, если у него есть хотя бы одна из запрошенных меток), с `category` — И. Неизвестный id не находит ничего, как и неизвестная категория"
+          },
+          {
+            "name": "is_pushkin_card",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Только по Пушкинской карте",
+              "title": "Is Pushkin Card"
+            },
+            "description": "Только по Пушкинской карте"
+          },
+          {
+            "name": "max_price",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Максимальная стоимость, руб.",
+              "title": "Max Price"
+            },
+            "description": "Максимальная стоимость, руб."
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 2
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Поиск по названию, описанию, адресу и категории",
+              "title": "Q"
+            },
+            "description": "Поиск по названию, описанию, адресу и категории"
+          },
+          {
+            "name": "min_rating",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 5,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Минимальный рейтинг",
+              "title": "Min Rating"
+            },
+            "description": "Минимальный рейтинг"
+          },
+          {
+            "name": "near_lat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 90,
+                  "minimum": -90
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Широта центра поиска",
+              "title": "Near Lat"
+            },
+            "description": "Широта центра поиска"
+          },
+          {
+            "name": "near_lon",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 180,
+                  "minimum": -180
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Долгота центра поиска",
+              "title": "Near Lon"
+            },
+            "description": "Долгота центра поиска"
+          },
+          {
+            "name": "radius_km",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 200,
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Радиус от центра, км",
+              "title": "Radius Km"
+            },
+            "description": "Радиус от центра, км"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 200,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Сколько объектов вернуть",
+              "title": "Limit"
+            },
+            "description": "Сколько объектов вернуть"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Пропустить N первых объектов",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Пропустить N первых объектов"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Каталог, отфильтрованный по запросу",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Place"
+                  },
+                  "title": "Response List Places Api V1 Places Get"
+                }
+              }
+            },
+            "headers": {
+              "X-Total-Count": {
+                "description": "Сколько объектов подошло под фильтры, до применения limit/offset",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-Offset": {
+                "description": "Смещение, с которого взята текущая страница",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректный параметр либо их комбинация: тело — список ошибок валидации, а для `radius_km` без центра и неполного центра — строка с объяснением",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/HTTPValidationError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Файл каталога недоступен или повреждён",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/places/{place_id}": {
+      "get": {
+        "tags": [
+          "Places"
+        ],
+        "summary": "Карточка места",
+        "operationId": "get_place_api_v1_places__place_id__get",
+        "parameters": [
+          {
+            "name": "place_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Place Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Place"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Места с таким идентификатором нет",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Файл каталога недоступен или повреждён",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/categories": {
+      "get": {
+        "tags": [
+          "Places"
+        ],
+        "summary": "Доступные категории мест",
+        "operationId": "list_categories_api_v1_categories_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "title": "Response List Categories Api V1 Categories Get"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Файл каталога недоступен или повреждён",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chips": {
+      "get": {
+        "tags": [
+          "Places"
+        ],
+        "summary": "Чипы «Чем хочешь заняться?»",
+        "description": "Настроенческие чипы экрана настройки прогулки вместе с числом мест, которые под ними реально лежат. Пустого чипа в ответе не бывает, поэтому список рисуют как есть, без своего перечня «что из этого работает». Порядок постоянный: кофе, культура, прогулка, перекус, фото.",
+        "operationId": "list_chips_api_v1_chips_get",
+        "parameters": [
+          {
+            "name": "city",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Считать чипы только по местам этого города",
+              "title": "City"
+            },
+            "description": "Считать чипы только по местам этого города"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Chip"
+                  },
+                  "title": "Response List Chips Api V1 Chips Get"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Файл каталога недоступен или повреждён",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cities": {
+      "get": {
+        "tags": [
+          "Places"
+        ],
+        "summary": "Города, представленные в каталоге",
+        "description": "Города, для которых в данных реально есть объекты, — селектор города не предлагает пустой выбор.",
+        "operationId": "list_cities_api_v1_cities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CitySummary"
+                  },
+                  "type": "array",
+                  "title": "Response List Cities Api V1 Cities Get"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Файл каталога недоступен или повреждён",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/guides": {
+      "get": {
+        "tags": [
+          "Guides"
+        ],
+        "summary": "Места, для которых справка уже написана",
+        "description": "Указатель к GET /places/{place_id}/guide: плашку «📖» вешают на этот список, а не на 404. Отсутствующая справка — не ошибка, а место, очередь которого ещё не дошла.",
+        "operationId": "list_guides_api_v1_guides_get",
+        "parameters": [
+          {
+            "name": "city",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Фильтр по городу, подходит краткая форма — «Ростов»",
+              "title": "City"
+            },
+            "description": "Фильтр по городу, подходит краткая форма — «Ростов»"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GuideSummary"
+                  },
+                  "title": "Response List Guides Api V1 Guides Get"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Файл справок недоступен или повреждён",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/places/{place_id}/guide": {
+      "get": {
+        "tags": [
+          "Guides"
+        ],
+        "summary": "Справка по месту",
+        "description": "Экран чтения для одной точки маршрута. `price`, `working_hours` и `title` приходят из каталога, а не из текста справки, поэтому не могут с ним разойтись; `nearby` считает тот же пеший ход, что и маршрутизатор.",
+        "operationId": "get_place_guide_api_v1_places__place_id__guide_get",
+        "parameters": [
+          {
+            "name": "place_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Place Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceGuide"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Места с таким идентификатором нет, либо справка для него ещё не написана",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Файл справок или файл каталога недоступны либо повреждены; в `detail` назван тот, который не читается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routes/generate": {
+      "post": {
+        "tags": [
+          "Routes"
+        ],
+        "summary": "Собрать маршрут выходного дня",
+        "operationId": "generate_route_api_v1_routes_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ни один объект не подошёл под фильтры",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Файл каталога недоступен или повреждён",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routes": {
+      "post": {
+        "tags": [
+          "Saved routes"
+        ],
+        "summary": "Сохранить собранный маршрут",
+        "description": "Тело — ответ `POST /routes/generate` без изменений, плюс необязательный `user_id`. Идентификатор выдаёт база: присланный внутри маршрута uuid4 остаётся только в полезной нагрузке, для обращения к записи он не годится.",
+        "operationId": "create_saved_route_api_v1_routes_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRouteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Запись создана и лежит в базе",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedRouteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Тело не проходит проверку: список ошибок валидации либо строка с перечислением неизвестных каталогу идентификаторов мест",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/HTTPValidationError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "База данных не отвечает",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Saved routes"
+        ],
+        "summary": "Сохранённые маршруты",
+        "description": "Свежие сверху. `user_id` фильтрует по заявленному владельцу — это удобство, а не защита: без него видно чужие сохранённые маршруты тоже. Всего подходящих записей — в X-Total-Count.",
+        "operationId": "read_saved_routes_api_v1_routes_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 9223372036854775807,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Только маршруты этого владельца",
+              "title": "User Id"
+            },
+            "description": "Только маршруты этого владельца"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 200,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Сколько записей вернуть",
+              "title": "Limit"
+            },
+            "description": "Сколько записей вернуть"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Пропустить N первых записей",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Пропустить N первых записей"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список сохранённых маршрутов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SavedRouteResponse"
+                  },
+                  "title": "Response Read Saved Routes Api V1 Routes Get"
+                }
+              }
+            },
+            "headers": {
+              "X-Total-Count": {
+                "description": "Сколько объектов подошло под фильтры, до применения limit/offset",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-Offset": {
+                "description": "Смещение, с которого взята текущая страница",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "База данных не отвечает",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routes/{route_id}": {
+      "get": {
+        "tags": [
+          "Saved routes"
+        ],
+        "summary": "Карточка сохранённого маршрута",
+        "operationId": "read_saved_route_api_v1_routes__route_id__get",
+        "parameters": [
+          {
+            "name": "route_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "description": "Идентификатор записи, выдаёт база",
+              "title": "Route Id"
+            },
+            "description": "Идентификатор записи, выдаёт база"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedRouteResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Сохранённого маршрута с таким идентификатором нет",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "База данных не отвечает",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ingest": {
+      "post": {
+        "tags": [
+          "Ingest"
+        ],
+        "summary": "Запустить поиск мест для города",
+        "description": "Ищет реальные места в OpenStreetMap, берёт описания и фотографии из Wikidata и Commons и перезаписывает `data/places.d/<город>.json`. Отвечает сразу, не дожидаясь конца: прогресс — в `GET /admin/ingest/status`. Требует заголовок `X-Ingest-Token`. Категории, которыми работает сборщик: Музей, Театр, Галерея, Парк, Памятник, Архитектура, Кафе.",
+        "operationId": "start_ingest_api_v1_admin_ingest_post",
+        "parameters": [
+          {
+            "name": "X-Ingest-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Ingest-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestAccepted"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Заголовок с токеном не передан или не совпадает",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Прогон уже идёт",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "INGEST_TOKEN не задан: автокаталог выключен на этом сервере",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ingest/status": {
+      "get": {
+        "tags": [
+          "Ingest"
+        ],
+        "summary": "Состояние сборщика мест",
+        "description": "Идёт ли прогон сейчас и чем закончился последний. Тот же `X-Ingest-Token`, что и для запуска: отчёт показывает, какие города и откуда были собраны.",
+        "operationId": "ingest_status_api_v1_admin_ingest_status_get",
+        "parameters": [
+          {
+            "name": "X-Ingest-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Ingest-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Заголовок с токеном не передан или не совпадает",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "INGEST_TOKEN не задан: автокаталог выключен на этом сервере",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Передать событие аналитики",
+        "description": "Одно из восьми событий пути: открытие приложения, начало настройки, показ маршрута, старт прохождения, карточка места, завершение, оценка и критическая ошибка клиента. Время ставит сервер в момент приёма, поэтому событию нужно идти сразу, а не копиться до устойчивой связи. `client_error` — восьмое имя, которого нет в списке продукта: без него метрика «техническая стабильность» не из чего считать.",
+        "operationId": "report_event_api_v1_events_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Событие записано; `event_id` и `occurred_at` выдаёт база",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Тело не проходит проверку: имя вне списка, идентификатор сессии ненадлежащего вида или поле пришло не со своим событием",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "База данных не отвечает",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Принятые события",
+        "description": "Свежие сверху. Нужно, чтобы разобрать одну метрику: `GET /metrics/funnel` показывает долю, а почему она такая — видно только по строкам. `session_id` собирает воронку одного посетителя.",
+        "operationId": "read_events_api_v1_events_get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "miniapp_open",
+                    "route_setup_started",
+                    "route_generated",
+                    "route_started",
+                    "poi_opened",
+                    "route_completed",
+                    "route_rated",
+                    "client_error"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Только это событие",
+              "title": "Name"
+            },
+            "description": "Только это событие"
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 8,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Только эта сессия",
+              "title": "Session Id"
+            },
+            "description": "Только эта сессия"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 1000,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Сколько записей вернуть",
+              "title": "Limit"
+            },
+            "description": "Сколько записей вернуть"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Пропустить N первых записей",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Пропустить N первых записей"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список событий",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventRecord"
+                  },
+                  "title": "Response Read Events Api V1 Events Get"
+                }
+              }
+            },
+            "headers": {
+              "X-Total-Count": {
+                "description": "Сколько объектов подошло под фильтры, до применения limit/offset",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "X-Offset": {
+                "description": "Смещение, с которого взята текущая страница",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "База данных не отвечает",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/metrics/funnel": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Метрики пилота",
+        "description": "Та же таблица, что в продуктовой проработке: семь строк, у каждой — как считаем, целевая гипотеза, текущее значение и знаменатель. Пустая выборка даёт `null`, а не ноль: «некому было завершать маршрут» и «никто не завершил» — разные новости для разных людей. Отсчёт идёт от серверных меток времени, потому что клиентские часы воронку искажают.",
+        "operationId": "read_funnel_api_v1_metrics_funnel_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 366,
+              "minimum": 1,
+              "description": "За сколько дней считать",
+              "default": 30,
+              "title": "Days"
+            },
+            "description": "За сколько дней считать"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Все семь метрик за окно; `value: null` — под формулу не попал никто",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunnelReport"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "База данных не отвечает",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhook": {
+      "post": {
+        "summary": "Webhook",
+        "operationId": "webhook_webhook_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Update"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "description": "Статус базы и число пользователей; 200 даже при недоступной базе.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "summary": "Readyz",
+        "description": "Готовность принимать трафик: 503, если база не отвечает.",
+        "operationId": "readyz_readyz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Readyz Readyz Get"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "База данных не отвечает",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Root  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiError": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "description": "Что пошло не так"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ApiError",
+        "description": "Body of every non-2xx answer these endpoints return."
+      },
+      "CallbackPayload": {
+        "properties": {
+          "callback_id": {
+            "type": "string",
+            "title": "Callback Id",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "integer",
+            "title": "Timestamp",
+            "default": 0
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload"
+          },
+          "user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "CallbackPayload"
+      },
+      "Chip": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "coffee",
+              "culture",
+              "walk",
+              "food",
+              "photo"
+            ],
+            "title": "Id",
+            "description": "Идентификатор чипа; его клиент и шлёт в `tags` запроса маршрута"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Подпись на чипе"
+          },
+          "emoji": {
+            "type": "string",
+            "title": "Emoji",
+            "description": "Значок чипа"
+          },
+          "tags": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "coffee",
+                "culture",
+                "walk",
+                "food",
+                "photo"
+              ]
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Метки мест, которые выбирает чип; их пересечение с `Place.tags` непусто"
+          },
+          "place_count": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Place Count",
+            "description": "Сколько мест каталога подходят под чип. Нуля здесь не бывает: чип, на котором нечего показать, до клиента не доезжает, а не приезжает пустым"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "emoji",
+          "tags",
+          "place_count"
+        ],
+        "title": "Chip",
+        "description": "Один чип «Чем хочешь заняться?» — вместе с тем, что под него действительно лежит."
+      },
+      "CitySummary": {
+        "properties": {
+          "city": {
+            "type": "string",
+            "title": "City",
+            "description": "Название города"
+          },
+          "place_count": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Place Count",
+            "description": "Число объектов в этом городе"
+          },
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Categories",
+            "description": "Категории этих объектов"
+          }
+        },
+        "type": "object",
+        "required": [
+          "city",
+          "place_count",
+          "categories"
+        ],
+        "title": "CitySummary",
+        "description": "One city present in the catalog; the seed data holds a single one for now."
+      },
+      "EventRecord": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "miniapp_open",
+              "route_setup_started",
+              "route_generated",
+              "route_started",
+              "poi_opened",
+              "route_completed",
+              "route_rated",
+              "client_error"
+            ],
+            "title": "Name",
+            "description": "Что произошло: `miniapp_open` — открыли приложение, `route_setup_started` — начали настройку, `route_generated` — маршрут показан, `route_started` — нажали «Начать», `poi_opened` — открыли карточку места, `route_completed` — прогулку завершили, `route_rated` — поставили оценку, `client_error` — критическая ошибка на стороне клиента"
+          },
+          "session_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{8,64}$",
+            "title": "Session Id",
+            "description": "Идентификатор сессии Mini App: одна прогулка одного посетителя, все семь метрик считаются по нему. От 8 до 64 знаков из `[A-Za-z0-9_-]`, обычно `crypto.randomUUID()`"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9.223372036854776e+18,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "Аккаунт MAX, если он известен клиенту. Не аутентификация — как у сохранённых маршрутов"
+          },
+          "route_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route Id",
+            "description": "`route_id` из ответа генератора — связывает события одной прогулки"
+          },
+          "place_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Id",
+            "description": "Идентификатор места; обязателен у `poi_opened`"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 5.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating",
+            "description": "Оценка полезности 1–5; обязательна у `route_rated`"
+          },
+          "requested_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1440.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested Minutes",
+            "description": "Сколько времени заказывали, мин; обязательна у `route_completed`"
+          },
+          "actual_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1440.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Minutes",
+            "description": "Сколько прогулка заняла на самом деле, мин; обязателен у `route_completed`"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail",
+            "description": "Текст ошибки; принимается только у `client_error`"
+          },
+          "event_id": {
+            "type": "integer",
+            "title": "Event Id",
+            "description": "Идентификатор записи, выдаёт база"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At",
+            "description": "Момент, когда сервер принял событие, UTC. Клиентскую метку времени не принимаем: интервалы воронки измеряются между событиями одной сессии, и часы устройства-отправителя сделали бы из «времени до маршрута» время погрешности этих часов"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "session_id",
+          "event_id",
+          "occurred_at"
+        ],
+        "title": "EventRecord",
+        "description": "Событие так, как оно легло в базу: время ставит сервер, идентификатор выдаёт таблица."
+      },
+      "EventRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "miniapp_open",
+              "route_setup_started",
+              "route_generated",
+              "route_started",
+              "poi_opened",
+              "route_completed",
+              "route_rated",
+              "client_error"
+            ],
+            "title": "Name",
+            "description": "Что произошло: `miniapp_open` — открыли приложение, `route_setup_started` — начали настройку, `route_generated` — маршрут показан, `route_started` — нажали «Начать», `poi_opened` — открыли карточку места, `route_completed` — прогулку завершили, `route_rated` — поставили оценку, `client_error` — критическая ошибка на стороне клиента"
+          },
+          "session_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{8,64}$",
+            "title": "Session Id",
+            "description": "Идентификатор сессии Mini App: одна прогулка одного посетителя, все семь метрик считаются по нему. От 8 до 64 знаков из `[A-Za-z0-9_-]`, обычно `crypto.randomUUID()`"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9.223372036854776e+18,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "Аккаунт MAX, если он известен клиенту. Не аутентификация — как у сохранённых маршрутов"
+          },
+          "route_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route Id",
+            "description": "`route_id` из ответа генератора — связывает события одной прогулки"
+          },
+          "place_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Id",
+            "description": "Идентификатор места; обязателен у `poi_opened`"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 5.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating",
+            "description": "Оценка полезности 1–5; обязательна у `route_rated`"
+          },
+          "requested_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1440.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested Minutes",
+            "description": "Сколько времени заказывали, мин; обязательна у `route_completed`"
+          },
+          "actual_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1440.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Minutes",
+            "description": "Сколько прогулка заняла на самом деле, мин; обязателен у `route_completed`"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail",
+            "description": "Текст ошибки; принимается только у `client_error`"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "session_id"
+        ],
+        "title": "EventRequest",
+        "description": "Одно событие аналитики. Неизвестные ключи отвергаются: опечатка в имени поля иначе тихонько\nпропала бы из метрик, а не вернула 422."
+      },
+      "FunnelMetric": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "Machine-имя метрики — его подставляет дашборд"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Название метрики словами продукта"
+          },
+          "formula": {
+            "type": "string",
+            "title": "Formula",
+            "description": "Как считаем"
+          },
+          "target": {
+            "type": "string",
+            "title": "Target",
+            "description": "Целевая гипотеза пилота"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "minutes",
+              "ratio"
+            ],
+            "title": "Unit",
+            "description": "Доли (0..1) это или минуты"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Значение за окно; null — под формулу не попадает ни одного наблюдения"
+          },
+          "reached": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reached",
+            "description": "Дотягивает ли до гипотезы; null вместе с `value`"
+          },
+          "sample": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Sample",
+            "description": "Знаменатель: сколько наблюдений стоит за числом. Доля на трёх случаях — ещё не доля"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "formula",
+          "target",
+          "unit",
+          "sample"
+        ],
+        "title": "FunnelMetric",
+        "description": "Одна строка таблицы метрик пилота: как считаем, что получилось, дотягивает ли до гипотезы."
+      },
+      "FunnelReport": {
+        "properties": {
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At",
+            "description": "Момент расчёта, UTC"
+          },
+          "window_days": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Window Days",
+            "description": "За сколько дней до расчёта считаем"
+          },
+          "sessions": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Sessions",
+            "description": "Сколько разных `session_id` попало в окно"
+          },
+          "events": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Events",
+            "description": "Сколько событий попало в окно"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/FunnelMetric"
+            },
+            "type": "array",
+            "title": "Metrics",
+            "description": "Строки таблицы §8, в её же порядке"
+          }
+        },
+        "type": "object",
+        "required": [
+          "generated_at",
+          "window_days",
+          "sessions",
+          "events",
+          "metrics"
+        ],
+        "title": "FunnelReport",
+        "description": "Все семь метрик §8 одним ответом — таблица, которую продукт ждёт от пилота."
+      },
+      "GuideMedia": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "Оригинал файла на Commons"
+          },
+          "thumb_url": {
+            "type": "string",
+            "title": "Thumb Url",
+            "description": "Миниатюра того же файла — показывать клиенту её"
+          },
+          "caption": {
+            "type": "string",
+            "minLength": 3,
+            "title": "Caption",
+            "description": "Что на снимке"
+          },
+          "credit": {
+            "type": "string",
+            "minLength": 2,
+            "title": "Credit",
+            "description": "Автор, как указан на странице файла"
+          },
+          "license": {
+            "type": "string",
+            "minLength": 2,
+            "title": "License",
+            "description": "Лицензия, например CC BY-SA 4.0"
+          },
+          "license_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License Url",
+            "description": "Страница лицензии; null только у public domain, где ссылки на лицензию нет"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url",
+          "thumb_url",
+          "caption",
+          "credit",
+          "license"
+        ],
+        "title": "GuideMedia",
+        "description": "Один снимок справки. Оба адреса ведут на Wikimedia Commons — чужие хосты сервер не раздаёт."
+      },
+      "GuideProvenance": {
+        "properties": {
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url",
+            "description": "Страница источника; без неё справка считается неподтверждённой"
+          },
+          "last_verified": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Verified",
+            "description": "Дата, когда редактор сверил запись с источником"
+          },
+          "verified_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Verified Fields",
+            "description": "Поля записи, сверенные с этим источником (history, highlights, media)"
+          }
+        },
+        "type": "object",
+        "title": "GuideProvenance",
+        "description": "Чем справка подтверждена и где именно редактор взял факты."
+      },
+      "GuideSummary": {
+        "properties": {
+          "place_id": {
+            "type": "string",
+            "title": "Place Id",
+            "description": "Идентификатор места — адрес GET /places/{place_id}/guide"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Название места из каталога"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Категория объекта"
+          },
+          "city": {
+            "type": "string",
+            "title": "City",
+            "description": "Город"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "seed"
+            ],
+            "title": "Status",
+            "description": "ready или seed"
+          },
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Url",
+            "description": "Обложка — `image_url` места; второй ссылки на картинку у клиента нет"
+          },
+          "media_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Media Count",
+            "description": "Сколько снимков лежит в справке"
+          },
+          "last_verified": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Verified",
+            "description": "Дата последней сверки текста с источником"
+          }
+        },
+        "type": "object",
+        "required": [
+          "place_id",
+          "title",
+          "category",
+          "city",
+          "status",
+          "media_count"
+        ],
+        "title": "GuideSummary",
+        "description": "Указатель на справку: плашку «📖» вешают на него, а не проверяют 404 на каждом месте."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "IngestAccepted": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "started",
+              "already_running"
+            ],
+            "title": "Status",
+            "description": "already_running — новый прогон не начат, потому что идёт старый"
+          },
+          "cities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cities",
+            "description": "Города этого запроса"
+          },
+          "running_since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Running Since",
+            "description": "Когда началась текущая обработка"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "cities"
+        ],
+        "title": "IngestAccepted",
+        "description": "Ответ запуска: принят ли запрос и что с ним будет дальше."
+      },
+      "IngestReport": {
+        "properties": {
+          "requested": {
+            "type": "string",
+            "title": "Requested",
+            "description": "Имя, как его просили"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City",
+            "description": "Как город называется в каталоге после распознавания; null — не найден"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url",
+            "description": "Объект города в OpenStreetMap"
+          },
+          "fetched": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Fetched",
+            "description": "Сколько элементов OSM найдено по каждой категории"
+          },
+          "published": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Published",
+            "description": "Сколько мест вошло в файл города по каждой категории"
+          },
+          "places": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Places",
+            "description": "Итоговое число мест",
+            "default": 0
+          },
+          "written": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Written",
+            "description": "Путь к файлу города; null для dry-run и для города, по которому нечего записывать"
+          },
+          "failures": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Failures",
+            "description": "Категории и города, которые не удались; пуст, если всё прошло"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requested"
+        ],
+        "title": "IngestReport",
+        "description": "Итог обработки одного города."
+      },
+      "IngestRequest": {
+        "properties": {
+          "cities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Cities",
+            "description": "Города по именам, как их понимает Nominatim: «Казань», «Saint Petersburg». Больше десяти за раз не просить — прогон держит занятый слот на общем Overpass"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 200.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Максимум мест на город; по умолчанию INGEST_MAX_PLACES_PER_CITY"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run",
+            "description": "Посчитать и показать, ничего не записывать. Отчёт при этом тот же, только без `written`",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cities"
+        ],
+        "title": "IngestRequest",
+        "description": "Запуск сбора мест. Неизвестные ключи отвергаются: молча проигнорированный город обиднее ошибки."
+      },
+      "IngestStatus": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Настроен ли INGEST_TOKEN; без него запуска здесь нет"
+          },
+          "running": {
+            "type": "boolean",
+            "title": "Running",
+            "description": "Есть ли прогон прямо сейчас"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At",
+            "description": "Начало текущего или последнего прогона, UTC"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At",
+            "description": "Конец того же прогона, UTC"
+          },
+          "reports": {
+            "items": {
+              "$ref": "#/components/schemas/IngestReport"
+            },
+            "type": "array",
+            "title": "Reports",
+            "description": "Отчёты последнего прогона, по одному на город"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error",
+            "description": "Почему прогон упал целиком; null, если не падал"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "running"
+        ],
+        "title": "IngestStatus",
+        "description": "Состояние сборщика: идёт ли прогон сейчас и чем закончился предыдущий."
+      },
+      "Location": {
+        "properties": {
+          "lat": {
+            "type": "number",
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Lat",
+            "description": "Широта"
+          },
+          "lon": {
+            "type": "number",
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Lon",
+            "description": "Долгота"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lat",
+          "lon"
+        ],
+        "title": "Location"
+      },
+      "Message": {
+        "properties": {
+          "sender": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recipient": {
+            "$ref": "#/components/schemas/MessageRecipient"
+          },
+          "timestamp": {
+            "type": "integer",
+            "title": "Timestamp",
+            "default": 0
+          },
+          "body": {
+            "$ref": "#/components/schemas/MessageBody"
+          }
+        },
+        "type": "object",
+        "title": "Message"
+      },
+      "MessageBody": {
+        "properties": {
+          "mid": {
+            "type": "string",
+            "title": "Mid",
+            "default": ""
+          },
+          "seq": {
+            "type": "integer",
+            "title": "Seq",
+            "default": 0
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "attachments": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Attachments"
+          }
+        },
+        "type": "object",
+        "title": "MessageBody"
+      },
+      "MessageRecipient": {
+        "properties": {
+          "chat_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chat Id"
+          },
+          "chat_type": {
+            "type": "string",
+            "title": "Chat Type",
+            "default": "dialog"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "post_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Post Id"
+          }
+        },
+        "type": "object",
+        "title": "MessageRecipient"
+      },
+      "NearbyPlace": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Идентификатор места — по нему просят и его справку"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Название места"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Категория объекта"
+          },
+          "distance_m": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Distance M",
+            "description": "По прямой от этого места, м"
+          },
+          "travel_minutes": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Travel Minutes",
+            "description": "Переход пешком в том же исчислении, что и `travel_minutes_from_prev` у маршрута: оценка планировщика, а не навигатора"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "category",
+          "distance_m",
+          "travel_minutes"
+        ],
+        "title": "NearbyPlace",
+        "description": "Соседняя точка: экран справки обещает «рядом», и эти же минуты показывает маршрут."
+      },
+      "Place": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Уникальный идентификатор места"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Название места или события"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Краткое описание"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Категория объекта, см. GET /categories"
+          },
+          "tags": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "coffee",
+                "culture",
+                "walk",
+                "food",
+                "photo"
+              ]
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Зачем сюда идут: кофе, культура, прогулка, перекус, фото. id те же, что у `Chip.id` в GET /chips; пустой список — место вне настроенческих подборок"
+          },
+          "location": {
+            "$ref": "#/components/schemas/Location"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address",
+            "description": "Адрес"
+          },
+          "city": {
+            "type": "string",
+            "title": "City",
+            "description": "Город",
+            "default": "Ростов-на-Дону"
+          },
+          "is_pushkin_card": {
+            "type": "boolean",
+            "title": "Is Pushkin Card",
+            "description": "Доступно по Пушкинской карте",
+            "default": false
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Price",
+            "description": "Стоимость посещения, руб.",
+            "default": 0.0
+          },
+          "working_hours": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Working Hours",
+            "description": "Часы работы"
+          },
+          "rating": {
+            "type": "number",
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Rating",
+            "description": "Рейтинг 0..5",
+            "default": 5.0
+          },
+          "visit_duration_minutes": {
+            "type": "integer",
+            "minimum": 15.0,
+            "title": "Visit Duration Minutes",
+            "description": "Рекомендуемая длительность визита",
+            "default": 60
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url",
+            "description": "Миниатюра с Wikimedia Commons, ссылка на чужой хост; null — подходящего фото нет"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "category",
+          "location"
+        ],
+        "title": "Place"
+      },
+      "PlaceGuide": {
+        "properties": {
+          "place_id": {
+            "type": "string",
+            "title": "Place Id",
+            "description": "Идентификатор места из data/places.json"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "seed"
+            ],
+            "title": "Status",
+            "description": "ready — справка полная, seed — заготовка, которой делятся честно",
+            "default": "seed"
+          },
+          "history": {
+            "items": {
+              "type": "string",
+              "minLength": 120,
+              "description": "Абзац истории места"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 2,
+            "title": "History",
+            "description": "2–3 абзаца истории"
+          },
+          "highlights": {
+            "items": {
+              "type": "string",
+              "minLength": 12,
+              "description": "Короткий факт, который проверяется прямо на месте"
+            },
+            "type": "array",
+            "maxItems": 5,
+            "minItems": 3,
+            "title": "Highlights",
+            "description": "3–5 фактов для человека на месте"
+          },
+          "media": {
+            "items": {
+              "$ref": "#/components/schemas/GuideMedia"
+            },
+            "type": "array",
+            "title": "Media",
+            "description": "Снимки; первым идёт обложка"
+          },
+          "media_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Note",
+            "description": "Почему снимков нет. Обязателен, если media пусто: пустая подборка не должна выглядеть решением"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/GuideProvenance"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Название места из каталога"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Категория объекта из каталога"
+          },
+          "city": {
+            "type": "string",
+            "title": "City",
+            "description": "Город из каталога"
+          },
+          "location": {
+            "$ref": "#/components/schemas/Location"
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Price",
+            "description": "Стоимость посещения, руб. — то же число, что в карточке места"
+          },
+          "working_hours": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Working Hours",
+            "description": "Часы работы — тоже эхом из каталога"
+          },
+          "visit_duration_minutes": {
+            "type": "integer",
+            "minimum": 15.0,
+            "title": "Visit Duration Minutes",
+            "description": "Время на точку, которое под это место закладывает маршрутизатор"
+          },
+          "nearby": {
+            "items": {
+              "$ref": "#/components/schemas/NearbyPlace"
+            },
+            "type": "array",
+            "title": "Nearby",
+            "description": "Ближайшие к этому месту объекты каталога, по расстоянию"
+          }
+        },
+        "type": "object",
+        "required": [
+          "place_id",
+          "history",
+          "highlights",
+          "provenance",
+          "title",
+          "category",
+          "city",
+          "location",
+          "price",
+          "visit_duration_minutes"
+        ],
+        "title": "PlaceGuide",
+        "description": "Справка для клиента: редакторский текст плюс поля, эхом взятые из каталога, и соседи."
+      },
+      "RouteRequest": {
+        "properties": {
+          "city": {
+            "type": "string",
+            "minLength": 2,
+            "title": "City",
+            "description": "Город; допускается краткая форма — «Ростов»"
+          },
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Categories",
+            "description": "Фильтр по категориям"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Фильтр по настроению: id из GET /chips. Внутри списка — ИЛИ (место годится, если у него есть хотя бы одна из запрошенных меток), между `tags` и `categories` — И. Пустой список ничего не ограничивает, а неизвестный id не находит мест и даёт 404 — как категория"
+          },
+          "max_budget": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Budget",
+            "description": "Максимальная суммарная стоимость маршрута, руб. Принимается и под именем `budget`"
+          },
+          "is_pushkin_card_only": {
+            "type": "boolean",
+            "title": "Is Pushkin Card Only",
+            "description": "Только места по Пушкинской карте",
+            "default": false
+          },
+          "duration_hours": {
+            "type": "number",
+            "maximum": 12.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Duration Hours",
+            "description": "Желаемая длительность, ч. Маршрут планируется короче: 15 % этого времени остаётся в резерве на очереди и темп прогулки, а не отдаётся новой точке",
+            "default": 4.0
+          },
+          "start_lat": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 90.0,
+                "minimum": -90.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Lat",
+            "description": "Широта точки, из которой начинают прогулку, deg — вместе с `start_lon`. Без неё маршрут строится как раньше: первой точкой планировщика, без перехода к ней. С ней первые `travel_minutes_from_prev` и `distance_m_from_prev` считаются от старта и съедают бюджет времени, а слишком далёкие места до фильтрации не доходят"
+          },
+          "start_lon": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 180.0,
+                "minimum": -180.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Lon",
+            "description": "Долгота точки старта, deg — вместе с `start_lat`"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "city"
+        ],
+        "title": "RouteRequest"
+      },
+      "RouteResponse": {
+        "properties": {
+          "route_id": {
+            "type": "string",
+            "title": "Route Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "city": {
+            "type": "string",
+            "title": "City"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Location"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Точка старта из запроса; None, если старт не передавали"
+          },
+          "total_duration_hours": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Total Duration Hours",
+            "description": "Визиты и переходы между точками, включая переход от старта к первой точке"
+          },
+          "total_duration_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Duration Minutes",
+            "description": "То же число в минутах, без округления до сотых часа",
+            "default": 0
+          },
+          "total_distance_m": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Distance M",
+            "description": "Сумма прямых расстояний между соседними точками, м, включая отрезок от старта до первой точки",
+            "default": 0
+          },
+          "slack_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slack Minutes",
+            "description": "Свободные минуты до конца заказанной длительности. Планировщик тратит не больше 85 % запрошенного времени: остальные 15 % — резерв на очереди, закрытую дверь и темп прогулки"
+          },
+          "total_cost": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Total Cost",
+            "description": "Суммарная стоимость посещения, руб."
+          },
+          "geometry_source": {
+            "type": "string",
+            "enum": [
+              "osrm",
+              "straight_line"
+            ],
+            "title": "Geometry Source",
+            "description": "Откуда линия между точками: `osrm` — пешеходный маршрут, посчитанный для этой цепочки, `straight_line` — хорда между маркерами, потому что сервер маршрутов не ответил или выключен. Определяет и подпись длины на экране: «по тротуарам» против «напрямую»",
+            "default": "straight_line"
+          },
+          "total_walk_distance_m": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Walk Distance M",
+            "description": "Сумма измеренных переходов, м; null, если ни один переход не измерен (весь маршрут — хорды). С `total_distance_m` сравнивать напрямую нельзя: тротуар огибает квартал, а прямая режет его по диагонали"
+          },
+          "places": {
+            "items": {
+              "$ref": "#/components/schemas/Place"
+            },
+            "type": "array",
+            "title": "Places",
+            "description": "Точки в порядке визита"
+          },
+          "stops": {
+            "items": {
+              "$ref": "#/components/schemas/RouteStop"
+            },
+            "type": "array",
+            "title": "Stops",
+            "description": "Те же точки с таймингами переходов; пуст, если маршрут не собран"
+          }
+        },
+        "type": "object",
+        "required": [
+          "route_id",
+          "title",
+          "city",
+          "total_duration_hours",
+          "total_cost"
+        ],
+        "title": "RouteResponse"
+      },
+      "RouteStop": {
+        "properties": {
+          "place": {
+            "$ref": "#/components/schemas/Place"
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Order",
+            "description": "Позиция точки в маршруте"
+          },
+          "arrival_offset_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Arrival Offset Minutes",
+            "description": "Момент прибытия от начала, мин."
+          },
+          "visit_duration_minutes": {
+            "type": "integer",
+            "minimum": 15.0,
+            "title": "Visit Duration Minutes",
+            "description": "Время на точку, мин."
+          },
+          "travel_minutes_from_prev": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Travel Minutes From Prev",
+            "description": "Переход от предыдущей точки, мин; у первой точки — от `start` запроса, или 0, если старта не было. Оценка планировщика (пеший ход плюс запас на ожидание), а не ETA навигатора: путь по тротуарам всегда дольше",
+            "default": 0
+          },
+          "distance_m_from_prev": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Distance M From Prev",
+            "description": "Расстояние от предыдущей точки по прямой, м; у первой точки — от точки старта, если она передана, иначе 0. Длина тротуарного обхода всегда больше, поэтому подпись «N км пешком» честнее читать «N км напрямую»",
+            "default": 0
+          },
+          "walk_distance_m_from_prev": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Walk Distance M From Prev",
+            "description": "Длина этого перехода по пешеходной сети, м — то, что человек реально пройдёт. null при `geometry_source = straight_line`: прямую между маркерами измерить не у кого, и подписывать её как путь по тротуарам было бы враньём. Не замена `travel_minutes_from_prev`: минуты планировщика остаются обещанием, на котором маршрут сошёл в заказанный бюджет"
+          },
+          "geometry_from_prev": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geometry From Prev",
+            "description": "Линия перехода от предыдущей точки к этой, координаты GeoJSON как [lon, lat]; у первой точки — от `start`, если он передавался. null бывает у первой точки без старта и у одномаршрутной подборки — вписать переход некуда. При `geometry_source = straight_line` это хорда между маркерами, и рисовать её надо пунктиром. Линия начинается у ближайшей точки пешеходной сети, а не у маркера: места стоят в 5–150 м от тротуара"
+          }
+        },
+        "type": "object",
+        "required": [
+          "place",
+          "order",
+          "arrival_offset_minutes",
+          "visit_duration_minutes"
+        ],
+        "title": "RouteStop",
+        "description": "One point of an assembled route with its place in the timeline."
+      },
+      "SaveRouteRequest": {
+        "properties": {
+          "route_id": {
+            "type": "string",
+            "title": "Route Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "city": {
+            "type": "string",
+            "title": "City"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Location"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Точка старта из запроса; None, если старт не передавали"
+          },
+          "total_duration_hours": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Total Duration Hours",
+            "description": "Визиты и переходы между точками, включая переход от старта к первой точке"
+          },
+          "total_duration_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Duration Minutes",
+            "description": "То же число в минутах, без округления до сотых часа",
+            "default": 0
+          },
+          "total_distance_m": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Distance M",
+            "description": "Сумма прямых расстояний между соседними точками, м, включая отрезок от старта до первой точки",
+            "default": 0
+          },
+          "slack_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slack Minutes",
+            "description": "Свободные минуты до конца заказанной длительности. Планировщик тратит не больше 85 % запрошенного времени: остальные 15 % — резерв на очереди, закрытую дверь и темп прогулки"
+          },
+          "total_cost": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Total Cost",
+            "description": "Суммарная стоимость посещения, руб."
+          },
+          "geometry_source": {
+            "type": "string",
+            "enum": [
+              "osrm",
+              "straight_line"
+            ],
+            "title": "Geometry Source",
+            "description": "Откуда линия между точками: `osrm` — пешеходный маршрут, посчитанный для этой цепочки, `straight_line` — хорда между маркерами, потому что сервер маршрутов не ответил или выключен. Определяет и подпись длины на экране: «по тротуарам» против «напрямую»",
+            "default": "straight_line"
+          },
+          "total_walk_distance_m": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Walk Distance M",
+            "description": "Сумма измеренных переходов, м; null, если ни один переход не измерен (весь маршрут — хорды). С `total_distance_m` сравнивать напрямую нельзя: тротуар огибает квартал, а прямая режет его по диагонали"
+          },
+          "places": {
+            "items": {
+              "$ref": "#/components/schemas/Place"
+            },
+            "type": "array",
+            "title": "Places",
+            "description": "Точки в порядке визита"
+          },
+          "stops": {
+            "items": {
+              "$ref": "#/components/schemas/RouteStop"
+            },
+            "type": "array",
+            "title": "Stops",
+            "description": "Те же точки с таймингами переходов; пуст, если маршрут не собран"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9.223372036854776e+18,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "Владелец маршрута. Не аутентифицируется: см. README, раздел про сохранённые маршруты"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "route_id",
+          "title",
+          "city",
+          "total_duration_hours",
+          "total_cost"
+        ],
+        "title": "SaveRouteRequest",
+        "description": "Ответ генератора, отправленный обратно без изменений, плюс необязательный владелец.\n\nНаследование держит обещание буквальный: сохраняется ровно то, что вернул\n`POST /routes/generate`. Неизвестные ключи отвергаются по той же причине, что и у `RouteRequest`."
+      },
+      "SavedRouteResponse": {
+        "properties": {
+          "route_id": {
+            "type": "integer",
+            "title": "Route Id",
+            "description": "Идентификатор записи, выдаёт база"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "Владелец, если его передали при сохранении"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "city": {
+            "type": "string",
+            "title": "City"
+          },
+          "total_cost": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Total Cost",
+            "description": "Стоимость маршрута на момент сохранения, руб."
+          },
+          "stop_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Stop Count",
+            "description": "Число точек в сохранённом маршруте"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Момент сохранения, UTC"
+          },
+          "route": {
+            "$ref": "#/components/schemas/RouteResponse",
+            "description": "Ответ генератора ровно так, как он сохранён"
+          }
+        },
+        "type": "object",
+        "required": [
+          "route_id",
+          "title",
+          "city",
+          "total_cost",
+          "stop_count",
+          "created_at",
+          "route"
+        ],
+        "title": "SavedRouteResponse",
+        "description": "Сохранённый маршрут: исходный ответ генератора под собственным постоянным идентификатором."
+      },
+      "Update": {
+        "properties": {
+          "update_type": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Update Type"
+          },
+          "timestamp": {
+            "type": "integer",
+            "title": "Timestamp",
+            "default": 0
+          },
+          "chat_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chat Id"
+          },
+          "user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "message": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Message"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "callback": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CallbackPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload"
+          },
+          "is_channel": {
+            "type": "boolean",
+            "title": "Is Channel",
+            "default": false
+          },
+          "user_locale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Locale"
+          }
+        },
+        "type": "object",
+        "required": [
+          "update_type"
+        ],
+        "title": "Update",
+        "description": "Envelope for every event MAX delivers to a webhook or returns from `/updates`."
+      },
+      "UserRef": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name",
+            "default": ""
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "is_bot": {
+            "type": "boolean",
+            "title": "Is Bot",
+            "default": false
+          },
+          "last_activity_time": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity Time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id"
+        ],
+        "title": "UserRef"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://max.chestnyidiplom.ru",
+      "description": "Проверяемый развёрнутый экземпляр (HTTPS, доступен во время проверки)"
+    },
+    {
+      "url": "http://localhost:8080",
+      "description": "Локальный запуск: docker compose up --build"
+    }
+  ]
+}
