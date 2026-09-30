@@ -1,3 +1,10 @@
+# Локальный стек целиком: `docker compose up --build` поднимает API бота и Mini App, и больше ничего
+# не нужно. Переменные читаются из `.env` в этой папке, но ни одна из них не обязательна: на пустом
+# клоне BOT_TOKEN получает заглушку, а AUTO_SETUP остаётся выключенным, поэтому стек стартует без
+# боевых ключей и без обращений к MAX. За токеном и регистрацией вебхука — шаг «для демо в мессенджере».
+#
+# Боевой вариант этого же стека (с nginx, HTTPS и автодеплоем) лежит в tools/deploy/docker-compose.yml.
+
 services:
   bot:
     build:
@@ -5,11 +12,29 @@ services:
       dockerfile: Dockerfile
     image: max-bot-mvp:latest
     container_name: max-bot
-    env_file: .env
     environment:
-      # Keep the SQLite file on the mounted volume so redeploys do not wipe users.
-      DATABASE_URL: ${DATABASE_URL:-sqlite+aiosqlite:///data/bot.db}
-      # The container always listens on 8080; SERVER_PORT only picks the host port.
+      # Compose подставляет значения из .env в этом каталоге, поэтому env_file не нужен — и правильно:
+      # на отсутствующем файле env_file останавливает весь запуск.
+      BOT_TOKEN: ${BOT_TOKEN:-local-review-placeholder-token}
+      BOT_API_URL: ${BOT_API_URL:-https://platform-api2.max.ru}
+      BOT_USERNAME: ${BOT_USERNAME:-}
+      BOT_NAME: ${BOT_NAME:-Хакатон МАХ 91}
+      MINI_APP_URL: ${MINI_APP_URL:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
+      BOT_WEBHOOK_URL: ${BOT_WEBHOOK_URL:-}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
+      # Регистрация меню команд и подписки стучится в MAX. Показ каталога и маршрутов от неё не зависит,
+      # так что по умолчанию выключено: локальный прогон не должен дёргать живой API чужим токеном.
+      AUTO_SETUP: ${AUTO_SETUP:-false}
+      # База живёт в именованном томе, а не в примонтированной папке ./data: каталог мест принадлежит
+      # пользователю хоста и для контейнера недоступен на запись, а SQLite обязан писать.
+      DATABASE_URL: ${DATABASE_URL:-sqlite+aiosqlite:///state/bot.db}
+      # Пустой INGEST_TOKEN оставляет эндпоинты автокаталога с 503 — они переписывают каталог целиком.
+      INGEST_TOKEN: ${INGEST_TOKEN:-}
+      OSRM_URL: ${OSRM_URL:-https://routing.openstreetmap.de/routed-foot}
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # Внутри сети контейнер всегда слушает 8080; SERVER_PORT выбирает только порт на хосте.
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: "8080"
     ports:
@@ -17,6 +42,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./certs:/app/certs:ro
+      - bot-state:/app/state
     restart: unless-stopped
     healthcheck:
       test:
@@ -28,3 +54,22 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+
+  miniapp:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: max-miniapp:latest
+    container_name: max-miniapp
+    # Ждём, пока бэкенд ответит на /health: фронт на первой же загрузке зовёт /api/v1/cities, и
+    # отдавать на этот запрос 502 нет смысла.
+    depends_on:
+      bot:
+        condition: service_healthy
+    ports:
+      - "${MINIAPP_PORT:-8081}:80"
+    restart: unless-stopped
+
+volumes:
+  # Именованный том для базы: переживает `docker compose down` и пересборку образа, удаляется только `down -v`.
+  bot-state:

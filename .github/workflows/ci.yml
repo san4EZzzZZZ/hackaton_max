@@ -49,3 +49,40 @@ jobs:
             if curl -fsS http://127.0.0.1:8099/health; then exit 0; fi
           done
           echo "the container never became live" && exit 1
+
+  # Разовое доказательство, что «одна команда запуска» из README — не обещание, а факт: клон без .env,
+  # `docker compose up --build`, и оба компонента отвечают. Локально Docker на машине разработчика
+  # отсутствует, поэтому проверка живёт здесь.
+  stack:
+    name: docker compose up serves the whole local stack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose up --build -d
+      - name: wait for the API to report ready
+        run: |
+          for attempt in $(seq 1 40); do
+            sleep 3
+            if curl -fsS http://127.0.0.1:8080/readyz; then break; fi
+          done
+          curl -fsS http://127.0.0.1:8080/readyz || { docker compose logs; exit 1; }
+      - name: both components answer, and the Mini App reaches the API through its own nginx
+        run: |
+          set -e
+          curl -fsS http://127.0.0.1:8080/api/v1/cities | grep -q 'Ростов'
+          curl -fsS http://127.0.0.1:8080/openapi.json | grep -q 'openapi'
+          curl -fsS http://127.0.0.1:8081/ | grep -q '<div id="root">'
+          # /api с порта 8081 проходит через nginx контейнера miniapp на сервис bot:8080 — без CORS
+          # и без переменных сборки, ровно как это делает проверяющий.
+          curl -fsS "http://127.0.0.1:8081/api/v1/chips?city=%D0%A0%D0%BE%D1%81%D1%82%D0%BE%D0%B2" | grep -q 'place_count'
+          curl -fsS http://127.0.0.1:8081/docs -o /dev/null
+      - name: the route generator produces a walkable plan from the shipped catalog
+        run: |
+          set -e
+          curl -fsS -X POST http://127.0.0.1:8080/api/v1/routes/generate \
+            -H 'content-type: application/json' \
+            -d '{"city":"Ростов-на-Дону","tags":["culture"],"duration_hours":3,"max_budget":800}' \
+            | grep -q '"total_duration_minutes":135'
+      - if: failure()
+        run: docker compose logs
+

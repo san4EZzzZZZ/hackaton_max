@@ -482,6 +482,28 @@ def test_build_candidates_prefers_the_russian_name_and_the_wiki_description() ->
     assert {"price", "working_hours"} <= set(candidate.provenance["unverified_fields"])
 
 
+def test_a_registry_number_is_not_a_description() -> None:
+    """Памятники приносят из OSM номер госреестра вместо текста про себя."""
+    mansion = element(
+        8, "Особняк Парамонова", tourism="attraction",
+        description="Особняк Парамонова 611510279110006",
+    )
+    candidate = build_candidates(CITY, {MUSEUM: (mansion,)}, {}, {})[0]
+
+    assert candidate.place.description is None, "осталось только название — значит описания нет"
+
+
+def test_a_year_survives_the_registry_number_being_cut() -> None:
+    building = element(
+        9, "Главный почтамт", tourism="attraction",
+        description="Здание 1917 года, объект культурного наследия 611510279110006 регионального",
+        # >= 40 символов, чтобы текст прошёл как проза маппера, а не строка Викиданных.
+    )
+    candidate = build_candidates(CITY, {MUSEUM: (building,)}, {}, {})[0]
+
+    assert candidate.place.description == "Здание 1917 года, объект культурного наследия регионального"
+
+
 def test_a_well_attested_place_outranks_a_bare_one() -> None:
     bare = element(1, "Сквер", leisure="park")
     famous = element(2, "Кремль", leisure="park", wikidata="Q270149", opening_hours="24/7")

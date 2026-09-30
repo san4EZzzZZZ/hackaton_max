@@ -31,7 +31,11 @@ WORKDIR /app
 
 COPY --from=builder /install /usr/local
 COPY --chown=bot:bot . .
-RUN mkdir -p data certs && chown -R bot:bot /app
+# `state` — каталог базы. Отдельно от `data` (куда монтируется папка мест с правами хоста) он нужен
+# ровно поэтому: SQLite обязан писать, а примонтированная папка принадлежит пользователю хоста, чей
+# uid контейнеру неизвестен. Пустой каталог, созданный здесь и принадлежащий `bot`, Docker передаёт
+# именованному тому при первом монтировании — поэтому запись возможна при любом uid на хосте.
+RUN mkdir -p data certs state && chown -R bot:bot /app
 
 USER bot
 EXPOSE 8080
