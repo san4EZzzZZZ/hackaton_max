@@ -136,6 +136,42 @@ def _key(candidate: Candidate) -> tuple:
     return (lat, lon, place.title.lower())
 
 
+#: Quotes, case and punctuation carry no identity in a title: «Дом Врангеля» and Дом Врангеля are one
+#: building, and the seed writes them both ways.
+_TITLE_NOISE = re.compile(r"[^0-9a-zа-яё]+")
+
+
+def title_key(title: str) -> str:
+    """The shape a title is compared in across catalogs."""
+    return _TITLE_NOISE.sub(" ", title.casefold()).strip()
+
+
+def fit_to_publish(
+    candidates: list[Candidate], *, known_titles: frozenset[str] = frozenset()
+) -> list[Candidate]:
+    """Drop what would open as an empty card, and what the seed already has under another id.
+
+    `dedupe` cannot do either of these: it compares the run's own objects, and the hand-written seed is
+    not among them. Both failures end on the same screen, which is why they live in one filter.
+
+    A place with neither a picture nor a sentence is a stop the visitor walks to and then reads
+    nothing about, and it is the common case rather than the exception: of the 770 objects one Rostov
+    pass found, 47 reached the file. And a building the seed already publishes arrives with a
+    different id, so nothing else stops it standing on the map twice, one metre from its own copy.
+    """
+    kept: list[Candidate] = []
+    for candidate in candidates:
+        place = candidate.place
+        if title_key(place.title) in known_titles:
+            candidate.dropped_reason = "already in the seed"
+            continue
+        if not ((place.description or "").strip() or (place.image_url or "").strip()):
+            candidate.dropped_reason = "no picture and no description"
+            continue
+        kept.append(candidate)
+    return kept
+
+
 def select(
     candidates: list[Candidate],
     interests: tuple[Interest, ...],

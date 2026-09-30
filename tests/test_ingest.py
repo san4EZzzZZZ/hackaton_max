@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 import server.catalog as catalog_module
+from ingest.commons import Picture
 from ingest.geo import City
 from ingest.normalize import (
     Candidate,
@@ -20,10 +21,12 @@ from ingest.normalize import (
     assign_ids,
     build_candidates,
     dedupe,
+    fit_to_publish,
     humanize_hours,
     picture_title,
     select,
     slugify,
+    title_key,
 )
 from ingest.osm import Element, build_query
 from ingest.store import city_path, read_city, write_city
@@ -197,6 +200,56 @@ def test_the_same_object_mapped_twice_becomes_one_place() -> None:
         candidate.score = 2.0 if candidate.element.osm_id == 2 else 1.0
     kept = dedupe(duplicated)
     assert [candidate.element.osm_id for candidate in kept] == [2]
+
+
+def test_title_key_treats_quoting_and_case_as_noise() -> None:
+    assert title_key("«Дом Врангеля»") == title_key("Дом  врангеля") == "дом врангеля"
+
+
+def test_a_place_with_neither_a_picture_nor_a_sentence_is_not_published() -> None:
+    """The card the visitor opens at a stop has to have something in it.
+
+    Measured on the Rostov pass: 147 objects found, 2 able to fill a card. Publishing the other 145
+    turns a walk into a series of empty screens, which is worse than a shorter list.
+    """
+    bare = element(1, "Кофейня у вокзала", amenity="cafe")
+    described = element(2, "Дом Врангеля", historic="building", wikidata="Q1")
+    entity = Entity(qid="Q1", description="доходный дом на Большой Садовой")
+    candidates = build_candidates(CITY, {CAFE: (bare,), ARCHITECTURE: (described,)}, {entity.qid: entity}, {})
+
+    kept = fit_to_publish(candidates)
+
+    assert [candidate.place.title for candidate in kept] == ["Дом Врангеля"]
+    dropped = [(c.place.title, c.dropped_reason) for c in candidates if id(c) not in map(id, kept)]
+    assert dropped == [("Кофейня у вокзала", "no picture and no description")]
+
+
+def test_a_picture_alone_is_enough_to_publish() -> None:
+    """Not every honest card needs prose: a photographed bridge tells the visitor where they are."""
+    park = element(3, "Ворошиловский мост", leisure="park", wikidata="Q2")
+    entity = Entity(qid="Q2", image="File:Voroshilovsky bridge.jpg")
+    pictures = {entity.image: Picture(url="https://upload.wikimedia.org/x.jpg")}
+    candidates = build_candidates(CITY, {PARK: (park,)}, {entity.qid: entity}, pictures)
+
+    assert [candidate.place.title for candidate in fit_to_publish(candidates)] == [
+        "Ворошиловский мост"
+    ]
+
+
+def test_a_place_the_seed_already_carries_is_not_published_a_second_time() -> None:
+    """`dedupe` cannot catch this one: the seed is not among the objects of this run.
+
+    The ids differ because the seed slug is hand-written and the fetched one is derived, so nothing
+    else stops the same building standing on the map twice, one metre from its own copy.
+    """
+    house = element(4, "Дом Врангеля", historic="building", wikidata="Q3")
+    entity = Entity(qid="Q3", description="особняк XIX века")
+    candidates = build_candidates(CITY, {ARCHITECTURE: (house,)}, {entity.qid: entity}, {})
+
+    kept = fit_to_publish(candidates, known_titles=frozenset({title_key("«Дом Врангеля»")}))
+
+    assert kept == []
+    assert candidates[0].dropped_reason == "already in the seed"
 
 
 def test_per_category_cap_lets_a_small_category_survive() -> None:
